@@ -108,3 +108,11 @@ crashlytics-build.properties
 # Created by .ignore support plugin (hsz.mobi)
 misc/
 data/evaluation_data
+
+# Ignore all the data for airscript
+data/
+log.txt
+train/
+model/
+sample/
+evaluation_data/
