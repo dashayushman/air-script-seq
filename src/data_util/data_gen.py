@@ -15,10 +15,10 @@ class DataGen(object):
 
     def __init__(self,
                  data_root, annotation_fn,
-                 evaluate = False,
-                 valid_target_len = float('inf'),
-                 img_width_range = (12, 320),
-                 word_len = 30):
+                 evaluate=False,
+                 valid_target_len=float('inf'),
+                 img_width_range=(12, 320),
+                 word_len=30):
         """
         :param data_root:
         :param annotation_fn:
@@ -35,13 +35,15 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(64 / 4, word_len + 2), (108 / 4, word_len + 2),
-                                 (140 / 4, word_len + 2), (256 / 4, word_len + 2),
+            self.bucket_specs = [(64 / 4, word_len + 2),
+                                 (108 / 4, word_len + 2),
+                                 (140 / 4, word_len + 2),
+                                 (256 / 4, word_len + 2),
                                  (img_width_range[1] / 4, word_len + 2)]
         else:
             self.bucket_specs = [(64 / 4, 9 + 2), (108 / 4, 15 + 2),
-                             (140 / 4, 17 + 2), (256 / 4, 20 + 2),
-                             (img_width_range[1] / 4, word_len + 2)]
+                                 (140 / 4, 17 + 2), (256 / 4, 20 + 2),
+                                 (img_width_range[1] / 4, word_len + 2)]
 
         self.bucket_min_width, self.bucket_max_width = img_width_range
         self.image_height = img_height
@@ -69,19 +71,22 @@ class DataGen(object):
 
                     # TODO:resize if > 320
                     b_idx = min(width, self.bucket_max_width)
-                    bs = self.bucket_data[b_idx].append(img_bw, word, os.path.join(self.data_root,img_path))
+                    bs = self.bucket_data[b_idx].append(img_bw, word,
+                                                        os.path.join(
+                                                            self.data_root,
+                                                            img_path))
                     if bs >= batch_size:
                         b = self.bucket_data[b_idx].flush_out(
-                                self.bucket_specs,
-                                valid_target_length=valid_target_len,
-                                go_shift=1)
+                            self.bucket_specs,
+                            valid_target_length=valid_target_len,
+                            go_shift=1)
                         if b is not None:
                             yield b
                         else:
-                            assert False, 'no valid bucket of width %d'%width
+                            assert False, 'no valid bucket of width %d' % width
                 except IOError:
-                    pass # ignore error images
-                    #with open('error_img.txt', 'a') as ef:
+                    pass  # ignore error images
+                    # with open('error_img.txt', 'a') as ef:
                     #    ef.write(img_path + '\n')
         self.clear()
 
