@@ -1,16 +1,41 @@
 # Import dependencies
-import json
-import os
+import os, logging, json
 from datasource import TrainingInstance as tri
 import numpy as np
 from utils import feature_extractor as fe
 import pickle
 import random
 
-def generate_label_sequences(codebook, range=(1, 30)):
+def generate_label_sequences(labels, n_instances, range=(1, 30)):
+    '''
 
+    :param labels:
+    :param n_instances:
+    :param range:
+    :return:
+    '''
+    seqs = []
+    seq_lengths = []
+
+    for i in np.arange(range[0], range[1]+1):
+        logging.info('Generating sequences of length ' + str(i))
+        for j in range(n_instances):
+            if j%20 == 0:
+                logging.info('Generating ' + str(j) + 'th sequence of length '
+                             + str(i))
+            seqs.append(random.sample(labels, i))
+            seq_lengths.append(i)
+    return seqs, seq_lengths
+
+def generate_data_sequences(codebook, labele_seqs, range=(1, 30)):
+    '''
+
+    :param codebook:
+    :param labele_seqs:
+    :param range:
+    :return:
+    '''
     return
-
 
 
 def scaleData(data, scaler):
@@ -117,6 +142,9 @@ def getTrainingData(rootdir):
     data_path = []  # A list that will hold the path to every training
     # instance in the 'data list'
 
+    # A codebook of all the labels and their corresponding
+    codebook = {}
+
     # Get the list of labels by walking the root directory
     for trclass in training_class_dirs:
         labels = trclass[1]
@@ -199,19 +227,25 @@ def getTrainingData(rootdir):
 
                 # split raw data
                 ti.separateRawData()
-
+                ti.consolidateData(None, False, True)
                 # append training instance to data list
                 data.append(ti)
 
                 # append class label to target list
                 target.append(tar_val)
+
+                if codebook.has_key(key): codebook[key].append(
+                    ti.getConsolidatedDataMatrix())
+                else: codebook[key] = [ti.getConsolidatedDataMatrix()]
+
+
     avg_len_emg = int(np.mean(sample_len_vec_emg))
     avg_len_acc = int(np.mean(sample_len_vec_others))
     max_length_emg = np.amax(sample_len_vec_emg)
     max_length_others = np.amax(sample_len_vec_others)
     return labels, data, target, labelsdict, avg_len_emg, avg_len_acc, \
            user_map, user_list, data_dict, max_length_emg, max_length_others,\
-           data_path
+           data_path, codebook
 
 
 def normalizeTrainingData(data, max_length_emg, max_len_others):
