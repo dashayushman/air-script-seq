@@ -107,4 +107,10 @@ crashlytics-build.properties
 
 # Created by .ignore support plugin (hsz.mobi)
 misc/
-data/evaluation_data
+data/evaluation_datadata/
+evaluation_data/
+log.txt
+model/
+sample/
+train/
+data/
