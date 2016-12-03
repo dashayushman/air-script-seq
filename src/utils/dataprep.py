@@ -48,12 +48,12 @@ def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
         d_seq_buf = None
         for lbl in label_seq:
             if d_seq_buf is None:
-                sampled_data = random.sample(codebook[lbl], 1)
+                sampled_data = np.array(random.sample(codebook[lbl], 1))
                 sampled_data = np.reshape(sampled_data, (sampled_data.shape[1],
                                                          sampled_data.shape[2]))
                 d_seq_buf = np.array(sampled_data)
             else:
-                rand_lbl_sample = random.sample(codebook[lbl], 1)
+                rand_lbl_sample = np.array(random.sample(codebook[lbl], 1))
                 rand_lbl_sample = np.reshape(rand_lbl_sample, (rand_lbl_sample.shape[1],
                                                                rand_lbl_sample.shape[2]))
                 d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=1)
