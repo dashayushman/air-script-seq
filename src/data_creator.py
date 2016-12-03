@@ -101,7 +101,7 @@ def dump_sequences(dir, data_seqs, lbl_seqs) :
         np.save(os.path.join(data_dir, data_file_name), data)
 
         with open(file_list_f, "a") as myfile :
-            myfile.write(data_file_name + ' ' + lbl_str + '\n')
+            myfile.write(data_file_name + '.npy ' + lbl_str + '\n')
 
     return False
 
