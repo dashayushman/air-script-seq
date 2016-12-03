@@ -56,7 +56,7 @@ def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
                 rand_lbl_sample = np.array(random.sample(codebook[lbl], 1))
                 rand_lbl_sample = np.reshape(rand_lbl_sample, (rand_lbl_sample.shape[1],
                                                                rand_lbl_sample.shape[2]))
-                d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=1)
+                d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=0)
 
         seqs.append(d_seq_buf)
         t_seqs.append(np.transpose(d_seq_buf))
