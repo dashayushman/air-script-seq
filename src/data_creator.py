@@ -101,7 +101,7 @@ def dump_sequences(dir, data_seqs, lbl_seqs) :
         np.save(os.path.join(data_dir, data_file_name), data)
 
         with open(file_list_f, "a") as myfile :
-            myfile.write(data_file_name + ' ' + lbl_str)
+            myfile.write(data_file_name + ' ' + lbl_str + '\n')
 
     return False
 
@@ -134,7 +134,6 @@ def generator(args) :
 
     data_seqs, t_data_seq = dp.generate_data_sequences(codebook,
                                                        label_seqs,
-                                                       n_instances_per_seq_len,
                                                        l_range = (parameters.min_len,
                                                            parameters.max_len))
     sss = StratifiedShuffleSplit(n_splits = 1,
@@ -163,7 +162,7 @@ def generator(args) :
     dump_sequences(os.path.join(dataset_root_dir, 'testing'),
                    train_x,
                    train_y)
-    
+
     logging.info('Finished generating dataset ' + parameters.name)
 
 if __name__ == '__main__' :
