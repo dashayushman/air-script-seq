@@ -137,7 +137,7 @@ def generator(args) :
                                                        l_range = (parameters.min_len,
                                                            parameters.max_len))
     sss = StratifiedShuffleSplit(n_splits = 1,
-                                 test_size = (1 - parameters.train_size),
+                                 #test_size = (1 - parameters.train_size),
                                  train_size = parameters.train_size,
                                  random_state = 0)
 
