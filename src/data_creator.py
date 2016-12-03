@@ -168,7 +168,7 @@ def generator(args) :
                      'avg_len : ' + str(avg_len)+ '\n' +
                      'min_len : ' + str(min_len) + '\n' +
                      'max_len : ' + str(max_len) + '\n' +
-                     'training instances : ' + train_y.shape[0] + '\n' +
+                     'training instances : ' + str(train_y.shape[0]) + '\n' +
                      'testing instances : ' + str(test_y.shape[0]) + '\n')
 
     logging.info('Finished generating dataset ' + parameters.name)
