@@ -86,20 +86,20 @@ class CNN(object):
         model.add(layers.BatchNormalization(axis=1))
         model.add(layers.Activation('relu'))
 
-        model.add(layers.Convolution2D(512, 3, 3, subsample=(1, 1),
-                                       border_mode='same',
-                                       dim_ordering='th'))
-        model.add(layers.Activation('relu'))
+        #model.add(layers.Convolution2D(512, 3, 3, subsample=(1, 1),
+        #                               border_mode='same',
+        #                               dim_ordering='th'))
+        #model.add(layers.Activation('relu'))
 
-        model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
-                                        dim_ordering='th'))
+        #model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
+        #                                dim_ordering='th'))
         # print 'pool4', model.output_shape
 
-        #model.add(layers.Convolution2D(512, 2, 2, subsample=(1, 1),
-        #                               border_mode='valid',
-        #                               dim_ordering='th'))
-        #model.add(layers.BatchNormalization(axis=1))
-        #model.add(layers.Activation('relu'))
+        model.add(layers.Convolution2D(512, 2, 2, subsample=(1, 1),
+                                       border_mode='valid',
+                                       dim_ordering='th'))
+        model.add(layers.BatchNormalization(axis=1))
+        model.add(layers.Activation('relu'))
 
         # ch, r, c -> c, r, ch
         model.add(layers.Permute((3, 1, 2)))
