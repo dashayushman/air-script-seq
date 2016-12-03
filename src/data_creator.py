@@ -87,7 +87,7 @@ def dump_sequences(dir, data_seqs, lbl_seqs) :
     '''
     #create directory if does not exist
     data_dir = os.path.join(dir, 'data')
-    file_list_f = os.path.join(dir, 'meta.txt')
+    file_list_f = os.path.join(dir, 'dataset.txt')
     if not os.path.exists(data_dir) :
         os.makedirs(data_dir)
 
@@ -132,7 +132,7 @@ def generator(args) :
                                                                 l_range = (parameters.min_len,
                                                                     parameters.max_len))
 
-    data_seqs, t_data_seq = dp.generate_data_sequences(codebook,
+    data_seqs, t_data_seq, avg_len, min_len, max_len = dp.generate_data_sequences(codebook,
                                                        label_seqs,
                                                        l_range = (parameters.min_len,
                                                            parameters.max_len))
@@ -162,6 +162,14 @@ def generator(args) :
     dump_sequences(os.path.join(dataset_root_dir, 'testing'),
                    train_x,
                    train_y)
+
+    with open(os.path.join(dataset_root_dir, 'meta.txt'), "w") as myfile :
+        myfile.write('name : ' +  parameters.name + '\n' +
+                     'avg_len : ' + str(avg_len)+ '\n' +
+                     'min_len : ' + str(min_len) + '\n' +
+                     'max_len : ' + str(max_len) + '\n' +
+                     'training instances : ' + train_y.shape[0] + '\n' +
+                     'testing instances : ' + test_y.shape[0] + '\n')
 
     logging.info('Finished generating dataset ' + parameters.name)
 

@@ -1,5 +1,5 @@
 # Import dependencies
-import os, logging, json
+import os, logging, json, math
 from datasource import TrainingInstance as tri
 import numpy as np
 from utils import feature_extractor as fe
@@ -41,6 +41,10 @@ def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
     seqs = []
     t_seqs = []
 
+    min_len = 10000000
+    max_len = 0
+    avg_len = 0.0;
+
     for j, label_seq in enumerate(labele_seqs) :
         if j % 20 == 0 :
             logging.info('Generating ' + str(j) + 'th data sequence of length '
@@ -58,10 +62,14 @@ def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
                                                                rand_lbl_sample.shape[2]))
                 d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=0)
 
+        avg_len += d_seq_buf.shape[0]
+        if d_seq_buf.shape[0] <= min_len: min_len = d_seq_buf.shape[0]
+        if d_seq_buf.shape[0] >= max_len : max_len = d_seq_buf.shape[0]
+
         seqs.append(d_seq_buf)
         t_seqs.append(np.transpose(d_seq_buf))
-
-    return seqs, t_seqs
+    avg_len = float(avg_len)/(j+1)
+    return seqs, t_seqs, avg_len, min_len, max_len
 
 
 def scaleData(data, scaler):
