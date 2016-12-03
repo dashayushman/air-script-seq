@@ -6,18 +6,18 @@ from utils import feature_extractor as fe
 import pickle
 import random
 
-def generate_label_sequences(labels, n_instances, range=(1, 30)):
+def generate_label_sequences(labels, n_instances, l_range=(1, 30)):
     '''
-
-    :param labels:
-    :param n_instances:
-    :param range:
-    :return:
+    Generates a given number of label sequences
+    :param labels: a list of available unique labels
+    :param n_instances: number of instances (sequences) to generate
+    :param range: A tuple that holds the min and max length of sequences
+    :return: list of sequences and list of their corresponding lengths
     '''
     seqs = []
     seq_lengths = []
 
-    for i in np.arange(range[0], range[1]+1):
+    for i in np.arange(l_range[0], l_range[1]+1):
         logging.info('Generating sequences of length ' + str(i))
         for j in range(n_instances):
             if j%20 == 0:
@@ -27,15 +27,36 @@ def generate_label_sequences(labels, n_instances, range=(1, 30)):
             seq_lengths.append(i)
     return seqs, seq_lengths
 
-def generate_data_sequences(codebook, labele_seqs, range=(1, 30)):
+def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
     '''
-
-    :param codebook:
-    :param labele_seqs:
-    :param range:
+    Generates a given number of data sequences
+    :param codebook: A codebook (dict obj) that holds all the labels as keys
+    and all the corresponding data instances as values
+    :param labele_seqs: Sequence of labels for which data sequences needs to
+    be generated
+    :param range: A tuple that holds the min and max length of sequences
     :return:
     '''
-    return
+
+    seqs = []
+    t_seqs = []
+
+    for j, label_seq in enumerate(labele_seqs) :
+        if j % 20 == 0 :
+            logging.info('Generating ' + str(j) + 'th data sequence of length '
+                         + str(len(label_seq)))
+        d_seq_buf = None
+        for lbl in label_seq:
+            if d_seq_buf is None:
+                d_seq_buf = np.array(random.sample(codebook[lbl], 1))
+            else:
+                rand_lbl_sample = random.sample(codebook[lbl], 1)
+                d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=1)
+
+        seqs.append(d_seq_buf)
+        t_seqs.append(np.transpose(d_seq_buf))
+
+    return seqs, t_seqs
 
 
 def scaleData(data, scaler):
