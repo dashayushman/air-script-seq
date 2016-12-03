@@ -37,14 +37,14 @@ class CNN(object):
         model = models.Sequential()
 
         # width is max of all: 785(test)
-        input_layer = layers.InputLayer(input_shape=(1, 10, None))
+        input_layer = layers.InputLayer(input_shape=(1, 32, None))
 
         # if input_tensor is not None:
         input_layer.set_input(input_tensor=input_tensor)
 
         model.add(input_layer)
 
-        #model.add(layers.Lambda(lambda x: (x - 128.0) / 128.0))
+        model.add(layers.Lambda(lambda x: (x - 128.0) / 128.0))
 
         model.add(layers.Convolution2D(64, 3, 3, subsample=(1, 1),
                                        border_mode='same',
@@ -55,13 +55,13 @@ class CNN(object):
                                         dim_ordering='th'))
         # print 'pool1', model.output_shape
 
-        #model.add(layers.Convolution2D(128, 3, 3, subsample=(1, 1),
-        #                                border_mode='same',
-        #                                dim_ordering='th'))
-        #model.add(layers.Activation('relu'))
+        model.add(layers.Convolution2D(128, 3, 3, subsample=(1, 1),
+                                        border_mode='same',
+                                        dim_ordering='th'))
+        model.add(layers.Activation('relu'))
 
-        #model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-        #                               dim_ordering='th'))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                                        dim_ordering='th'))
         # print 'pool2', model.output_shape
 
         model.add(layers.Convolution2D(256, 3, 3, subsample=(1, 1),
@@ -71,13 +71,13 @@ class CNN(object):
         model.add(layers.BatchNormalization(axis=1))
         model.add(layers.Activation('relu'))
 
-        #model.add(layers.Convolution2D(256, 3, 3, subsample=(1, 1),
-        #                               border_mode='same',
-        #                               dim_ordering='th'))
-        #model.add(layers.Activation('relu'))
+        model.add(layers.Convolution2D(256, 3, 3, subsample=(1, 1),
+                                       border_mode='same',
+                                       dim_ordering='th'))
+        model.add(layers.Activation('relu'))
 
-        #model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
-        #                                dim_ordering='th'))
+        model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
+                                        dim_ordering='th'))
         # print 'pool3', model.output_shape
 
         model.add(layers.Convolution2D(512, 3, 3, subsample=(1, 1),
@@ -86,13 +86,13 @@ class CNN(object):
         model.add(layers.BatchNormalization(axis=1))
         model.add(layers.Activation('relu'))
 
-        #model.add(layers.Convolution2D(512, 3, 3, subsample=(1, 1),
-        #                               border_mode='same',
-        #                               dim_ordering='th'))
-        #model.add(layers.Activation('relu'))
+        model.add(layers.Convolution2D(512, 3, 3, subsample=(1, 1),
+                                       border_mode='same',
+                                       dim_ordering='th'))
+        model.add(layers.Activation('relu'))
 
-        #model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
-        #                                dim_ordering='th'))
+        model.add(layers.MaxPooling2D(pool_size=(2, 1), strides=(2, 1),
+                                        dim_ordering='th'))
         # print 'pool4', model.output_shape
 
         model.add(layers.Convolution2D(512, 2, 2, subsample=(1, 1),
