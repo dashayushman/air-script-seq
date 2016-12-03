@@ -37,7 +37,7 @@ class CNN(object):
         model = models.Sequential()
 
         # width is max of all: 785(test)
-        input_layer = layers.InputLayer(input_shape=(1, 32, None))
+        input_layer = layers.InputLayer(input_shape=(1, 10, None))
 
         # if input_tensor is not None:
         input_layer.set_input(input_tensor=input_tensor)

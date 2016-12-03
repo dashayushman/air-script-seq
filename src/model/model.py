@@ -80,7 +80,8 @@ class Model(object):
             logging.info('ues GRU in the decoder.')
 
         # variables
-        self.img_data = tf.placeholder(tf.float32, shape=(None, 1, 32, None), name='img_data')
+        self.img_data = tf.placeholder(tf.float32, shape=(None, 1, 10, None),
+                                       name='img_data')
         self.zero_paddings = tf.placeholder(tf.float32, shape=(None, None, 512), name='zero_paddings')
         
         self.decoder_inputs = []

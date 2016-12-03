@@ -7,6 +7,7 @@ from collections import Counter
 import cPickle
 import random
 from bucketdata import BucketData
+from scipy import signal
 
 
 class DataGen(object):
@@ -17,7 +18,7 @@ class DataGen(object):
                  data_root, annotation_fn,
                  evaluate=False,
                  valid_target_len=float('inf'),
-                 img_width_range=(12, 320),
+                 img_width_range=(100, 1500),
                  word_len=30):
         """
         :param data_root:
@@ -27,7 +28,7 @@ class DataGen(object):
         :return:
         """
 
-        img_height = 32
+        img_height = 10
         self.data_root = data_root
         if os.path.exists(annotation_fn):
             self.annotation_path = annotation_fn
@@ -35,14 +36,20 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(64 / 4, word_len + 2),
-                                 (108 / 4, word_len + 2),
-                                 (140 / 4, word_len + 2),
-                                 (256 / 4, word_len + 2),
-                                 (img_width_range[1] / 4, word_len + 2)]
+            self.bucket_specs = [(120, word_len + 2),
+                                 (320, word_len + 2),
+                                 (560, word_len + 2),
+                                 (720, word_len + 2),
+                                 (960, word_len + 2),
+                                 (1240, word_len + 2),
+                                 (img_width_range[1] -100, word_len + 2)]
         else:
-            self.bucket_specs = [(64 / 4, 9 + 2), (108 / 4, 15 + 2),
-                                 (140 / 4, 17 + 2), (256 / 4, 20 + 2),
+            self.bucket_specs = [(120, 1 + 2),
+                                 (320, 2 + 2),
+                                 (560, 3 + 2),
+                                 (720, 5 + 2),
+                                 (960, 7 + 2),
+                                 (1240, 9 + 2),
                                  (img_width_range[1] / 4, word_len + 2)]
 
         self.bucket_min_width, self.bucket_max_width = img_width_range
@@ -93,27 +100,21 @@ class DataGen(object):
     def read_data(self, img_path, lex):
         assert 0 < len(lex) < self.bucket_specs[-1][1]
         # L = R * 299/1000 + G * 587/1000 + B * 114/1000
-        with open(os.path.join(self.data_root, img_path), 'rb') as img_file:
-            img = Image.open(img_file)
-            w, h = img.size
-            aspect_ratio = float(w) / float(h)
-            if aspect_ratio < float(self.bucket_min_width) / self.image_height:
-                img = img.resize(
-                    (self.bucket_min_width, self.image_height),
-                    Image.ANTIALIAS)
-            elif aspect_ratio > float(
-                    self.bucket_max_width) / self.image_height:
-                img = img.resize(
-                    (self.bucket_max_width, self.image_height),
-                    Image.ANTIALIAS)
-            elif h != self.image_height:
-                img = img.resize(
-                    (int(aspect_ratio * self.image_height), self.image_height),
-                    Image.ANTIALIAS)
+        #with open(os.path.join(self.data_root, img_path), 'rb') as img_file:
+        img = np.load(os.path.join(self.data_root, img_path))
+        w, h = img.size
+        aspect_ratio = float(w) / float(h)
+        if w < self.bucket_min_width:
+            img = signal.resample(img, self.bucket_min_width)
+        elif w > self.bucket_max_width:
+            img = signal.resample(img, self.bucket_max_width)
 
-            img_bw = img.convert('L')
-            img_bw = np.asarray(img_bw, dtype=np.uint8)
-            img_bw = img_bw[np.newaxis, :]
+        elif h != self.image_height:
+            raise Exception('Invalid number of channels in the input.')
+
+        img_bw = img.transpose()
+        img_bw = np.asarray(img_bw, dtype=np.uint8)
+        img_bw = img_bw[np.newaxis, :]
 
         # 'a':97, '0':48
         word = [self.GO]

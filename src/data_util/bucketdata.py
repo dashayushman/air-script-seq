@@ -36,7 +36,7 @@ class BucketData(object):
 
         def get_bucket_id():
             for idx in range(0, len(bucket_specs)):
-                if bucket_specs[idx][0] >= self.max_width / 4 - 1 \
+                if bucket_specs[idx][0] >= self.max_width - 1 \
                         and bucket_specs[idx][1] >= self.max_label_len:
                     return idx
             return None
@@ -51,7 +51,7 @@ class BucketData(object):
 
         # ENCODER PART
         res['data'] = np.array(self.data_list)
-        real_len = max(self.max_width / 4 - 1, 0)
+        real_len = max(self.max_width - 1, 0)
         padd_len = encoder_input_len - real_len
         res['zero_paddings'] = np.zeros([len(self.data_list), padd_len, 512],
                                         dtype=np.float32)
