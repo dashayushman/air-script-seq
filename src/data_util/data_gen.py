@@ -16,7 +16,7 @@ class DataGen(object):
                  data_root, annotation_fn,
                  evaluate = False,
                  valid_target_len = float('inf'),
-                 img_width_range = (12, 320),
+                 img_width_range = (64, 1600),
                  word_len = 30):
         """
         :param data_root:
@@ -35,19 +35,19 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(100 / 4, word_len + 2),
-                                 (300 / 4, word_len + 2),
-                                 (500 / 4, word_len + 2),
-                                 (700 / 4, word_len + 2),
-                                 (1000 / 4, word_len + 2),
-                                 (img_width_range[1] / 4, word_len + 2)]
+            self.bucket_specs = [(100 / 16, word_len + 2),
+                                 (300 / 16, word_len + 2),
+                                 (500 / 16, word_len + 2),
+                                 (700 / 16, word_len + 2),
+                                 (1000 / 16, word_len + 2),
+                                 (img_width_range[1] / 16, word_len + 2)]
         else:
-            self.bucket_specs = [(100 / 4, 2 + 2),
-                                 (300 / 4, 4 + 2),
-                                 (500 / 4, 6 + 2),
-                                 (700 / 4, 8 + 2),
-                                 (1000 / 4, 9 + 2),
-                             (img_width_range[1] / 4, word_len + 2)]
+            self.bucket_specs = [(100 / 16, 2 + 2),
+                                 (300 / 16, 4 + 2),
+                                 (500 / 16, 6 + 2),
+                                 (700 / 16, 8 + 2),
+                                 (1000 / 16, 9 + 2),
+                                 (img_width_range[1] / 16, word_len + 2)]
 
         self.bucket_min_width, self.bucket_max_width = img_width_range
         self.image_height = img_height
@@ -68,7 +68,7 @@ class DataGen(object):
             for l in lines:
                 img_path, lex = l.strip().split()
                 try:
-                    img_bw, word = self.read_data_1d(img_path, lex)
+                    img_bw, word = self.read_data_seq(img_path, lex)
                     if valid_target_len < float('inf'):
                         word = word[:valid_target_len + 1]
                     width = img_bw.shape[-1]
@@ -97,7 +97,7 @@ class DataGen(object):
         #with open(os.path.join(self.data_root, img_path), 'rb') as img_file :
         img_file = os.path.join(self.data_root, img_path)
         img = np.load(img_file)
-        w, h = img.size
+        w, h = img.shape
         #aspect_ratio = float(w) / float(h)
         if w < self.bucket_min_width :
             img = signal.resample(img, self.bucket_min_width)
@@ -110,7 +110,7 @@ class DataGen(object):
 
         img_bw = img.transpose()
         img_bw = np.asarray(img_bw, dtype = np.uint8)
-        #img_bw = img_bw[np.newaxis, :]
+        img_bw = img_bw[np.newaxis, :]
 
         # 'a':97, '0':48
         word = [self.GO]
