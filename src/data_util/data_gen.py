@@ -3,10 +3,9 @@ __author__ = 'moonkey'
 import os
 import numpy as np
 from PIL import Image
-from collections import Counter
-import cPickle
 import random
 from bucketdata import BucketData
+from scipy import signal
 
 
 class DataGen(object):
@@ -27,7 +26,8 @@ class DataGen(object):
         :return:
         """
 
-        img_height = 32
+        #img_height = 32
+        img_height = 10
         self.data_root = data_root
         if os.path.exists(annotation_fn):
             self.annotation_path = annotation_fn
@@ -35,12 +35,18 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(64 / 4, word_len + 2), (108 / 4, word_len + 2),
-                                 (140 / 4, word_len + 2), (256 / 4, word_len + 2),
+            self.bucket_specs = [(100 / 4, word_len + 2),
+                                 (300 / 4, word_len + 2),
+                                 (500 / 4, word_len + 2),
+                                 (700 / 4, word_len + 2),
+                                 (1000 / 4, word_len + 2),
                                  (img_width_range[1] / 4, word_len + 2)]
         else:
-            self.bucket_specs = [(64 / 4, 9 + 2), (108 / 4, 15 + 2),
-                             (140 / 4, 17 + 2), (256 / 4, 20 + 2),
+            self.bucket_specs = [(100 / 4, 2 + 2),
+                                 (300 / 4, 4 + 2),
+                                 (500 / 4, 6 + 2),
+                                 (700 / 4, 8 + 2),
+                                 (1000 / 4, 9 + 2),
                              (img_width_range[1] / 4, word_len + 2)]
 
         self.bucket_min_width, self.bucket_max_width = img_width_range
@@ -62,7 +68,7 @@ class DataGen(object):
             for l in lines:
                 img_path, lex = l.strip().split()
                 try:
-                    img_bw, word = self.read_data(img_path, lex)
+                    img_bw, word = self.read_data_1d(img_path, lex)
                     if valid_target_len < float('inf'):
                         word = word[:valid_target_len + 1]
                     width = img_bw.shape[-1]
@@ -84,6 +90,41 @@ class DataGen(object):
                     #with open('error_img.txt', 'a') as ef:
                     #    ef.write(img_path + '\n')
         self.clear()
+
+    def read_data_seq(self, img_path, lex):
+        assert 0 < len(lex) < self.bucket_specs[-1][1]
+        # L = R * 299/1000 + G * 587/1000 + B * 114/1000
+        #with open(os.path.join(self.data_root, img_path), 'rb') as img_file :
+        img_file = os.path.join(self.data_root, img_path)
+        img = np.load(img_file)
+        w, h = img.size
+        #aspect_ratio = float(w) / float(h)
+        if w < self.bucket_min_width :
+            img = signal.resample(img, self.bucket_min_width)
+
+        elif w > self.bucket_max_width :
+            img = signal.resample(img, self.bucket_max_width)
+
+        elif h != self.image_height :
+            raise Exception('Invalid number of channels')
+
+        img_bw = img.transpose()
+        img_bw = np.asarray(img_bw, dtype = np.uint8)
+        #img_bw = img_bw[np.newaxis, :]
+
+        # 'a':97, '0':48
+        word = [self.GO]
+        for c in lex :
+            assert 96 < ord(c) < 123 or 47 < ord(c) < 58
+            word.append(
+                ord(c) - 97 + 13 if ord(c) > 96 else ord(c) - 48 + 3)
+        word.append(self.EOS)
+        word = np.array(word, dtype = np.int32)
+        # word = np.array( [self.GO] +
+        # [ord(c) - 97 + 13 if ord(c) > 96 else ord(c) - 48 + 3
+        # for c in lex] + [self.EOS], dtype=np.int32)
+
+        return img_bw, word
 
     def read_data(self, img_path, lex):
         assert 0 < len(lex) < self.bucket_specs[-1][1]
