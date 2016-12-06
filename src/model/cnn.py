@@ -50,7 +50,7 @@ class CNN(object):
 
         model.add(input_layer)
 
-        model.add(layers.Lambda(lambda x : (x - 128.0) / 128.0))
+        #model.add(layers.Lambda(lambda x : (x - 128.0) / 128.0))
 
         model.add(layers.Convolution2D(64, 1, 3, subsample = (1, 1),
                                        border_mode = 'same',

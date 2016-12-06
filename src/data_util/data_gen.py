@@ -14,10 +14,10 @@ class DataGen(object):
 
     def __init__(self,
                  data_root, annotation_fn,
-                 evaluate = False,
-                 valid_target_len = float('inf'),
-                 img_width_range = (64, 1600),
-                 word_len = 30):
+                 evaluate=False,
+                 valid_target_len=float('inf'),
+                 img_width_range=(64, 1600),
+                 word_len=30):
         """
         :param data_root:
         :param annotation_fn:
@@ -26,7 +26,7 @@ class DataGen(object):
         :return:
         """
 
-        #img_height = 32
+        # img_height = 32
         img_height = 10
         self.data_root = data_root
         if os.path.exists(annotation_fn):
@@ -75,51 +75,54 @@ class DataGen(object):
 
                     # TODO:resize if > 320
                     b_idx = min(width, self.bucket_max_width)
-                    bs = self.bucket_data[b_idx].append(img_bw, word, os.path.join(self.data_root,img_path))
+                    bs = self.bucket_data[b_idx].append(img_bw, word,
+                                                        os.path.join(
+                                                            self.data_root,
+                                                            img_path))
                     if bs >= batch_size:
                         b = self.bucket_data[b_idx].flush_out(
-                                self.bucket_specs,
-                                valid_target_length=valid_target_len,
-                                go_shift=1)
+                            self.bucket_specs,
+                            valid_target_length=valid_target_len,
+                            go_shift=1)
                         if b is not None:
                             yield b
                         else:
-                            assert False, 'no valid bucket of width %d'%width
+                            assert False, 'no valid bucket of width %d' % width
                 except IOError:
-                    pass # ignore error images
-                    #with open('error_img.txt', 'a') as ef:
+                    pass  # ignore error images
+                    # with open('error_img.txt', 'a') as ef:
                     #    ef.write(img_path + '\n')
         self.clear()
 
     def read_data_seq(self, img_path, lex):
         assert 0 < len(lex) < self.bucket_specs[-1][1]
         # L = R * 299/1000 + G * 587/1000 + B * 114/1000
-        #with open(os.path.join(self.data_root, img_path), 'rb') as img_file :
+        # with open(os.path.join(self.data_root, img_path), 'rb') as img_file :
         img_file = os.path.join(self.data_root, img_path)
         img = np.load(img_file)
         w, h = img.shape
-        #aspect_ratio = float(w) / float(h)
-        if w < self.bucket_min_width :
+        # aspect_ratio = float(w) / float(h)
+        if w < self.bucket_min_width:
             img = signal.resample(img, self.bucket_min_width)
 
-        elif w > self.bucket_max_width :
+        elif w > self.bucket_max_width:
             img = signal.resample(img, self.bucket_max_width)
 
-        elif h != self.image_height :
+        elif h != self.image_height:
             raise Exception('Invalid number of channels')
 
         img_bw = img.transpose()
-        img_bw = np.asarray(img_bw, dtype = np.uint8)
+        img_bw = np.asarray(img_bw, dtype=np.uint8)
         img_bw = img_bw[np.newaxis, :]
 
         # 'a':97, '0':48
         word = [self.GO]
-        for c in lex :
+        for c in lex:
             assert 96 < ord(c) < 123 or 47 < ord(c) < 58
             word.append(
                 ord(c) - 97 + 13 if ord(c) > 96 else ord(c) - 48 + 3)
         word.append(self.EOS)
-        word = np.array(word, dtype = np.int32)
+        word = np.array(word, dtype=np.int32)
         # word = np.array( [self.GO] +
         # [ord(c) - 97 + 13 if ord(c) > 96 else ord(c) - 48 + 3
         # for c in lex] + [self.EOS], dtype=np.int32)

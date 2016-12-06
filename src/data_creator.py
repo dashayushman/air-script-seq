@@ -1,8 +1,9 @@
-import argparse, logging, sys, os
+import argparse, logging, sys, os, time
 from utils import dataprep as dp
 from datasource.data import DataSet
 from sklearn.model_selection import StratifiedShuffleSplit
 import numpy as np
+
 
 
 def process_args(args) :
@@ -18,6 +19,16 @@ def process_args(args) :
                         type = str, default = 'of_model',
                         help = ('Name of the '
                                 'dataset'))
+
+    parser.add_argument('--batch_size',
+                        type = int, default = 10,
+                        help = ('number of batches  to use for generating '
+                                'sequences'))
+
+    parser.add_argument('--print_every',
+                        type = int, default = 100,
+                        help = ('interval to print status in to give a sense '
+                                'of progress'))
 
     parser.add_argument('--root_dir',
                         type = str, default = '/tmp',
@@ -77,7 +88,7 @@ def initialize_logger(log_dir) :
     logging.getLogger('').addHandler(console)
 
 
-def dump_sequences(dir, data_seqs, lbl_seqs) :
+def dump_sequences(dir, data_seqs, lbl_seqs, print_every=100) :
     '''
     Dumps the data sequences into a
     :param dir: dir to dump data
@@ -94,11 +105,13 @@ def dump_sequences(dir, data_seqs, lbl_seqs) :
     file_list = []
     for i, (lbl, data) in enumerate(zip(lbl_seqs, data_seqs)):
         lbl_str = ''.join(lbl)
-        data_file_name = str(i) + '_' + lbl_str
-        if i % 50 == 0 :
-            logging.info('dumping ' + ''.join(lbl) + ' into ' + data_dir)
+        data_file_name = str(time.time())+ '_' +str(i) + '_' + lbl_str
+        file_save_path = os.path.join(data_dir, data_file_name)
+        if i % print_every == 0 :
+            logging.info('dumping ' + ''.join(lbl) + ' into ' +
+                         file_save_path)
 
-        np.save(os.path.join(data_dir, data_file_name), data)
+        np.save(file_save_path, data)
 
         with open(file_list_f, "a") as myfile :
             myfile.write(data_file_name + '.npy ' + lbl_str + '\n')
@@ -124,52 +137,69 @@ def generator(args) :
     data_path, codebook = dp.getTrainingData(parameters.root_dir)
 
     # Number of instances per sequence length
-    n_instances_per_seq_len = (parameters.n_seq / (parameters.max_len -
-                                                   parameters.min_len + 1))
+    inst_per_batch = parameters.n_seq / parameters.batch_size
 
-    label_seqs, label_seq_lengths = dp.generate_label_sequences(labels,
-                                                                n_instances_per_seq_len,
-                                                                l_range = (parameters.min_len,
-                                                                    parameters.max_len))
+    g_max_len = 0
+    g_min_len = 100000000
+    g_avg_len = 0.0
+    n_train = 0
+    n_test = 0
 
-    data_seqs, t_data_seq, avg_len, min_len, max_len = dp.generate_data_sequences(codebook,
-                                                       label_seqs,
-                                                       l_range = (parameters.min_len,
-                                                           parameters.max_len))
-    sss = StratifiedShuffleSplit(n_splits = 1,
-                                 #test_size = (1 - parameters.train_size),
-                                 train_size = parameters.train_size,
-                                 random_state = 0)
+    for batch in range(parameters.batch_size):
+        logging.info('Generating data for batch' + str(batch+1))
+        n_instances_per_seq_len = (inst_per_batch / (parameters.max_len -
+                                                       parameters.min_len + 1))
 
-    train_idx = []
-    test_idx = []
+        label_seqs, label_seq_lengths = dp.generate_label_sequences(labels,
+                                                            n_instances_per_seq_len,
+                                                            l_range = (parameters.min_len, parameters.max_len),
+                                                            print_every=parameters.print_every)
 
-    for train_index, test_index in sss.split(np.zeros(len(label_seq_lengths)),
-                                             label_seq_lengths) :
-        train_idx = train_index
-        test_idx = test_index
+        data_seqs, t_data_seq, avg_len, min_len, max_len = dp.generate_data_sequences(codebook,
+                                                           label_seqs,
+                                                           print_every=parameters.print_every)
+        sss = StratifiedShuffleSplit(n_splits = 1,
+                                     #test_size = (1 - parameters.train_size),
+                                     train_size = parameters.train_size,
+                                     random_state = 0)
 
-    train_x, train_y, test_x, test_y = dp.splitDataset(train_idx, test_idx,
-                                                       label_seqs, data_seqs)
+        train_idx = []
+        test_idx = []
 
-    dataset_root_dir = os.path.join(parameters.output_dir, parameters.name)
-    #dump training data
-    dump_sequences(os.path.join(dataset_root_dir, 'training'),
-                   train_x,
-                   train_y)
+        for train_index, test_index in sss.split(np.zeros(len(label_seq_lengths)),
+                                                 label_seq_lengths) :
+            train_idx = train_index
+            test_idx = test_index
 
-    # dump testing data
-    dump_sequences(os.path.join(dataset_root_dir, 'testing'),
-                   train_x,
-                   train_y)
+        train_x, train_y, test_x, test_y = dp.splitDataset(train_idx, test_idx,
+                                                           label_seqs, data_seqs)
 
-    with open(os.path.join(dataset_root_dir, 'meta.txt'), "w") as myfile :
-        myfile.write('name : ' +  parameters.name + '\n' +
-                     'avg_len : ' + str(avg_len)+ '\n' +
-                     'min_len : ' + str(min_len) + '\n' +
-                     'max_len : ' + str(max_len) + '\n' +
-                     'training instances : ' + str(train_y.shape[0]) + '\n' +
-                     'testing instances : ' + str(test_y.shape[0]) + '\n')
+        dataset_root_dir = os.path.join(parameters.output_dir, parameters.name)
+        #dump training data
+        dump_sequences(os.path.join(dataset_root_dir, 'training'),
+                       train_x,
+                       train_y,
+                       print_every = parameters.print_every)
+
+        # dump testing data
+        dump_sequences(os.path.join(dataset_root_dir, 'testing'),
+                       test_x,
+                       test_y,
+                       print_every = parameters.print_every)
+
+        g_avg_len = g_avg_len + avg_len
+        g_max_len = max(g_max_len, max_len)
+        g_min_len = min(g_min_len, min_len)
+        n_train += train_y.shape[0]
+        n_test += test_y.shape[0]
+
+        with open(os.path.join(dataset_root_dir, 'meta.txt'), "w") as myfile :
+            myfile.write('name : ' +  parameters.name + '\n' +
+                         'avg_len : ' + str(g_avg_len/(batch+1))+ '\n' +
+                         'min_len : ' + str(g_min_len) + '\n' +
+                         'max_len : ' + str(g_max_len) + '\n' +
+                         'training instances : ' + str(n_train) + '\n' +
+                         'testing instances : ' + str(n_test) + '\n')
 
     logging.info('Finished generating dataset ' + parameters.name)
 

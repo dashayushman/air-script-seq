@@ -6,7 +6,8 @@ from utils import feature_extractor as fe
 import pickle
 import random
 
-def generate_label_sequences(labels, n_instances, l_range=(1, 30)):
+def generate_label_sequences(labels, n_instances, l_range=(1, 30),
+                             print_every=100):
     '''
     Generates a given number of label sequences
     :param labels: a list of available unique labels
@@ -20,14 +21,14 @@ def generate_label_sequences(labels, n_instances, l_range=(1, 30)):
     for i in np.arange(l_range[0], l_range[1]+1):
         logging.info('Generating sequences of length ' + str(i))
         for j in range(n_instances):
-            if j%20 == 0:
+            if j % print_every == 0:
                 logging.info('Generating ' + str(j) + 'th sequence of length '
                              + str(i))
             seqs.append(random.sample(labels, i))
             seq_lengths.append(i)
     return seqs, seq_lengths
 
-def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
+def generate_data_sequences(codebook, labele_seqs, print_every=100):
     '''
     Generates a given number of data sequences
     :param codebook: A codebook (dict obj) that holds all the labels as keys
@@ -46,7 +47,7 @@ def generate_data_sequences(codebook, labele_seqs, l_range=(1, 30)):
     avg_len = 0.0;
 
     for j, label_seq in enumerate(labele_seqs) :
-        if j % 20 == 0 :
+        if j % print_every == 0 :
             logging.info('Generating ' + str(j) + 'th data sequence of length '
                          + str(len(label_seq)))
         d_seq_buf = None
