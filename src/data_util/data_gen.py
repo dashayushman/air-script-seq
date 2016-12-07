@@ -1,4 +1,4 @@
-__author__ = 'moonkey'
+__author__ = 'dash'
 
 import os
 import numpy as np
@@ -16,8 +16,8 @@ class DataGen(object):
                  data_root, annotation_fn,
                  evaluate=False,
                  valid_target_len=float('inf'),
-                 img_width_range=(64, 1600),
-                 word_len=30):
+                 img_width_range=(20, 1900),
+                 word_len=13):
         """
         :param data_root:
         :param annotation_fn:
@@ -35,30 +35,39 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(100 / 16, word_len + 2),
-                                 (300 / 16, word_len + 2),
-                                 (500 / 16, word_len + 2),
-                                 (700 / 16, word_len + 2),
+            self.bucket_specs = [(240 / 16, word_len + 2),
+                                 (400 / 16, word_len + 2),
+                                 (600 / 16, word_len + 2),
+                                 (800 / 16, word_len + 2),
                                  (1000 / 16, word_len + 2),
+                                 (1200 / 16, word_len + 2),
+                                 (1800 / 16, word_len + 2),
                                  (img_width_range[1] / 16, word_len + 2)]
         else:
-            self.bucket_specs = [(100 / 16, 2 + 2),
-                                 (300 / 16, 4 + 2),
-                                 (500 / 16, 6 + 2),
-                                 (700 / 16, 8 + 2),
-                                 (1000 / 16, 9 + 2),
+            self.bucket_specs = [(230 / 16, 2 + 2),
+                                 (400 / 16, 4 + 2),
+                                 (600 / 16, 6 + 2),
+                                 (800 / 16, 8 + 2),
+                                 (1000 / 16, 8 + 2),
+                                 (1200 / 16, 9 + 2),
+                                 (1800 / 16, 10 + 2),
                                  (img_width_range[1] / 16, word_len + 2)]
+        self.bins = [230, 400, 600, 800, 1000, 1200, 1800, img_width_range[1]]
+        #for bucket in self.bucket_specs:
+        #    self.bins.append(bucket[0])
 
         self.bucket_min_width, self.bucket_max_width = img_width_range
         self.image_height = img_height
         self.valid_target_len = valid_target_len
 
+        #self.bucket_data = {i: BucketData()
+        #                    for i in range(self.bucket_max_width + 1)}
         self.bucket_data = {i: BucketData()
-                            for i in range(self.bucket_max_width + 1)}
+                                for i in range(len(self.bins))}
 
     def clear(self):
-        self.bucket_data = {i: BucketData()
-                            for i in range(self.bucket_max_width + 1)}
+        self.bucket_data = {i : BucketData()
+                            for i in range(len(self.bins))}
 
     def gen(self, batch_size):
         valid_target_len = self.valid_target_len
@@ -66,7 +75,7 @@ class DataGen(object):
             lines = ann_file.readlines()
             random.shuffle(lines)
             for l in lines:
-                img_path, lex = l.strip().split()
+                img_path, lex, _, _ = l.strip().split()
                 try:
                     img_bw, word = self.read_data_seq(img_path, lex)
                     if valid_target_len < float('inf'):
@@ -74,7 +83,10 @@ class DataGen(object):
                     width = img_bw.shape[-1]
 
                     # TODO:resize if > 320
-                    b_idx = min(width, self.bucket_max_width)
+                    #b_idx = min(width, self.bucket_max_width)
+                    b_idxs = self.get_bin_id([width], self.bins)
+                    b_idx = b_idxs[0] #just for debugging purpose.[remove later]
+                    img_bw = signal.resample(img_bw, self.bins[b_idx], axis=2)
                     bs = self.bucket_data[b_idx].append(img_bw, word,
                                                         os.path.join(
                                                             self.data_root,
@@ -94,6 +106,15 @@ class DataGen(object):
                     #    ef.write(img_path + '\n')
         self.clear()
 
+    def get_bin_id(self, data, bins):
+        ids = []
+        for d in data:
+            for i, b in enumerate(bins):
+                if b >= d:
+                    ids.append(i)
+                    break
+        return ids
+
     def read_data_seq(self, img_path, lex):
         assert 0 < len(lex) < self.bucket_specs[-1][1]
         # L = R * 299/1000 + G * 587/1000 + B * 114/1000
@@ -112,7 +133,7 @@ class DataGen(object):
             raise Exception('Invalid number of channels')
 
         img_bw = img.transpose()
-        img_bw = np.asarray(img_bw, dtype=np.uint8)
+        img_bw = np.asarray(img_bw, dtype=np.float32)
         img_bw = img_bw[np.newaxis, :]
 
         # 'a':97, '0':48
@@ -151,7 +172,7 @@ class DataGen(object):
                     Image.ANTIALIAS)
 
             img_bw = img.convert('L')
-            img_bw = np.asarray(img_bw, dtype=np.uint8)
+            img_bw = np.asarray(img_bw, dtype=np.float32)
             img_bw = img_bw[np.newaxis, :]
 
         # 'a':97, '0':48
@@ -174,13 +195,17 @@ def test_gen():
     # s_gen = EvalGen('../../data/evaluation_data/svt', 'test.txt')
     # s_gen = EvalGen('../../data/evaluation_data/iiit5k', 'test.txt')
     # s_gen = EvalGen('../../data/evaluation_data/icdar03', 'test.txt')
-    s_gen = EvalGen('../../data/evaluation_data/icdar13', 'test.txt')
+    s_gen = DataGen('../../data/voice/v005_hist_1_10_1000000/training/data',
+                    '../../data/voice/v005_hist_1_10_1000000/training/dataset'
+                    '.txt')
+    # s_gen = EvalGen('../../data/evaluation_data/icdar13', 'test.txt')
     count = 0
-    for batch in s_gen.gen(1):
+    for batch in s_gen.gen(10) :
         count += 1
-        print batch['bucket_id'], batch['data'].shape[2:]
-        assert batch['data'].shape[2] == img_height
-    print count
+        # print batch['bucket_id'], batch['data'].shape[2:]
+        #print batch
+        print batch['bucket_id'], batch['data'].shape[2 :]
+        print count
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-__author__ = 'moonkey'
+__author__ = 'dash'
 
 import os
 import numpy as np
@@ -17,7 +17,7 @@ class BucketData(object):
         self.label_list = []
         self.file_list = []
 
-    def append(self, datum, label, filename):
+    def append(self, datum, label, filename) :
         self.data_list.append(datum)
         self.label_list.append(label)
         self.file_list.append(filename)
@@ -32,8 +32,9 @@ class BucketData(object):
         # print self.max_width, self.max_label_len
         res = dict(bucket_id=None,
                    data=None, zero_paddings=None, encoder_mask=None,
-                   decoder_inputs=None, target_weights=None)
+                   decoder_inputs=None, target_weights=None, real_len=None)
 
+        # yaad karke change to 16 later
         def get_bucket_id():
             for idx in range(0, len(bucket_specs)):
                 if bucket_specs[idx][0] >= self.max_width / 16 - 1 \
