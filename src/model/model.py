@@ -33,6 +33,7 @@ class Model(object):
                  data_path,
                  data_base_dir,
                  output_dir,
+                 tb_logs,
                  batch_size,
                  initial_learning_rate,
                  num_epoch,
@@ -66,6 +67,7 @@ class Model(object):
                 data_base_dir, data_path, evaluate=True)
 
         logging.info('data_path: %s' % (data_path))
+        logging.info('dTensorboard_logging_path: %s' % (tb_logs))
         logging.info('phase: %s' % phase)
         logging.info('batch_size: %d' % batch_size)
         logging.info('num_epoch: %d' % num_epoch)
@@ -115,6 +117,7 @@ class Model(object):
         self.valid_target_length = valid_target_length
         self.phase = phase
         self.visualize = visualize
+        self.tb_logs = tb_logs
 
         if phase == 'train':
             self.forward_only = False
@@ -197,6 +200,7 @@ class Model(object):
             if ':0' in name:
                 name = name.replace(':0', '')
             params_dict[name] = param
+            _activation_summary(param)
             # if 'Adadelta' in param.name and ('batch' in param.name or
             # 'conv' in param.name):
             #    params_add.append(param)
@@ -213,6 +217,7 @@ class Model(object):
             # else:
             #    params_init.append(param)
 
+        self.summary_op = tf.merge_all_summaries()
         self.saver_all = tf.train.Saver(params_dict)
         # self.saver = tf.train.Saver(list(set(tf.all_variables())-set(
         # params_add)))
@@ -236,6 +241,9 @@ class Model(object):
     def launch(self):
         step_time, loss = 0.0, 0.0
         current_step = 0
+        if not os.path.exists(self.tb_logs):
+            os.makedirs(self.tb_logs)
+        summary_writer = tf.train.SummaryWriter(self.tb_logs, self.sess.graph)
         previous_losses = []
         if self.phase == 'test':
             if not distance_loaded:
@@ -388,10 +396,13 @@ class Model(object):
                                 epoch, current_step, loss, perplexity,
                                 curr_step_time))
 
+                        summary_str = sess.run(self.summary_op)
+                        summary_writer.add_summary(summary_str, current_step)
+
                         # Save checkpoint and zero timer and loss.
                         if not self.forward_only:
                             checkpoint_path = os.path.join(self.model_dir,
-                                                           "translate.ckpt")
+                                                           "attn_seq.ckpt")
                             logging.info(
                                 "Saving model, current_step: %d" % current_step)
                             self.saver_all.save(self.sess, checkpoint_path,
@@ -460,6 +471,22 @@ class Model(object):
             1 + self.buckets[bucket_id][1])], outputs[(
             1 + self.buckets[bucket_id][
                 1]):]  # No gradient norm, loss, outputs, attentions.
+
+    def _activation_summary(x) :
+        """Helper to create summaries for activations.
+        Creates a summary that provides a histogram of activations.
+        Creates a summary that measures the sparsity of activations.
+        Args:
+          x: Tensor
+        Returns:
+          nothing
+        """
+        # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU
+        # training
+        # session. This helps the clarity of presentation on tensorboard.
+        tensor_name = x.name
+        tf.histogram_summary(tensor_name + '/activations', x)
+        tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
     def visualize_attention(self, filename, attentions, output_valid,
                             ground_valid, flag_incorrect, real_len):
