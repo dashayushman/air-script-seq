@@ -1,16 +1,76 @@
 # Import dependencies
-import json
-import os
+import os, logging, json, math
 from datasource import TrainingInstance as tri
 import numpy as np
 from utils import feature_extractor as fe
 import pickle
 import random
 
-def generate_label_sequences(codebook, range=(1, 30)):
+def generate_label_sequences(labels, n_instances, l_range=(1, 30),
+                             print_every=100):
+    '''
+    Generates a given number of label sequences
+    :param labels: a list of available unique labels
+    :param n_instances: number of instances (sequences) to generate
+    :param range: A tuple that holds the min and max length of sequences
+    :return: list of sequences and list of their corresponding lengths
+    '''
+    seqs = []
+    seq_lengths = []
 
-    return
+    for i in np.arange(l_range[0], l_range[1]+1):
+        logging.info('Generating sequences of length ' + str(i))
+        for j in range(n_instances):
+            if j % print_every == 0:
+                logging.info('Generating ' + str(j) + 'th sequence of length '
+                             + str(i))
+            seqs.append(random.sample(labels, i))
+            seq_lengths.append(i)
+    return seqs, seq_lengths
 
+def generate_data_sequences(codebook, labele_seqs, print_every=100):
+    '''
+    Generates a given number of data sequences
+    :param codebook: A codebook (dict obj) that holds all the labels as keys
+    and all the corresponding data instances as values
+    :param labele_seqs: Sequence of labels for which data sequences needs to
+    be generated
+    :param range: A tuple that holds the min and max length of sequences
+    :return:
+    '''
+
+    seqs = []
+    t_seqs = []
+
+    min_len = 10000000
+    max_len = 0
+    avg_len = 0.0;
+
+    for j, label_seq in enumerate(labele_seqs) :
+        if j % print_every == 0 :
+            logging.info('Generating ' + str(j) + 'th data sequence of length '
+                         + str(len(label_seq)))
+        d_seq_buf = None
+        for lbl in label_seq:
+            if d_seq_buf is None:
+                sampled_data = np.array(random.sample(codebook[lbl], 1))
+                sampled_data = np.reshape(sampled_data, (sampled_data.shape[1],
+                                                         sampled_data.shape[2]))
+                d_seq_buf = np.array(sampled_data)
+            else:
+                rand_lbl_sample = np.array(random.sample(codebook[lbl], 1))
+                rand_lbl_sample = np.reshape(rand_lbl_sample, (rand_lbl_sample.shape[1],
+                                                               rand_lbl_sample.shape[2]))
+                d_seq_buf = np.concatenate((d_seq_buf, rand_lbl_sample), axis=0)
+
+        avg_len += d_seq_buf.shape[0]
+        if d_seq_buf.shape[0] <= min_len: min_len = d_seq_buf.shape[0]
+        if d_seq_buf.shape[0] >= max_len : max_len = d_seq_buf.shape[0]
+
+        seqs.append(d_seq_buf)
+        t_seqs.append(np.transpose(d_seq_buf))
+    avg_len = float(avg_len)/(j+1)
+    return seqs, t_seqs, avg_len, min_len, max_len
 
 
 def scaleData(data, scaler):
@@ -117,6 +177,9 @@ def getTrainingData(rootdir):
     data_path = []  # A list that will hold the path to every training
     # instance in the 'data list'
 
+    # A codebook of all the labels and their corresponding
+    codebook = {}
+
     # Get the list of labels by walking the root directory
     for trclass in training_class_dirs:
         labels = trclass[1]
@@ -199,19 +262,25 @@ def getTrainingData(rootdir):
 
                 # split raw data
                 ti.separateRawData()
-
+                ti.consolidateData(None, False, True)
                 # append training instance to data list
                 data.append(ti)
 
                 # append class label to target list
                 target.append(tar_val)
+
+                if codebook.has_key(key): codebook[key].append(
+                    ti.getConsolidatedDataMatrix())
+                else: codebook[key] = [ti.getConsolidatedDataMatrix()]
+
+
     avg_len_emg = int(np.mean(sample_len_vec_emg))
     avg_len_acc = int(np.mean(sample_len_vec_others))
     max_length_emg = np.amax(sample_len_vec_emg)
     max_length_others = np.amax(sample_len_vec_others)
     return labels, data, target, labelsdict, avg_len_emg, avg_len_acc, \
            user_map, user_list, data_dict, max_length_emg, max_length_others,\
-           data_path
+           data_path, codebook
 
 
 def normalizeTrainingData(data, max_length_emg, max_len_others):

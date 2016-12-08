@@ -1,0 +1,1 @@
+python data_creator.py --name=v004_1_10_100000000 --root_dir=../data/voice/raw/v1.0/ --log_dir=../logs/dc.log --min_len=1 --max_len=10 --n_seq=100000000 --output_dir=../data/voice/ --train_size=0.8 --print_every=1000 --batch_size=1000

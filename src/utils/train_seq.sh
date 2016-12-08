@@ -1,0 +1,3 @@
+python launcher.py --phase=train --data-path=../data/voice/v005_hist_1_10_1000000/training/dataset.txt --data-base-dir=../data/voice/v005_hist_1_10_1000000/training/data --log-path=../logs/train_1000000.log --load-model --target-vocab-size=13
+
+python launcher.py --phase=train --data-path=../data/voice/v005_hist_1_10_1000000/training/dataset.txt --data-base-dir=../data/voice/v005_hist_1_10_1000000/training/data --log-path=../logs/train_1000000.log --load-model --target-vocab-size=13 --steps-per-checkpoint=500 --model-dir=../train
