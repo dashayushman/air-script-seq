@@ -72,6 +72,13 @@ def process_args(args, defaults):
                               ' how many steps, default = %s'
                               % (defaults.STEPS_PER_CHECKPOINT)))
 
+    parser.add_argument('--tb_log_every', dest = "tb_log_every",
+                        type = int, default = defaults.STEPS_PER_CHECKPOINT,
+                        help = (
+                        'frequency at which tensorboard logs are dumped. '
+                        'Default = %s'
+                        % (defaults.STEPS_PER_CHECKPOINT)))
+
     parser.add_argument('--target-vocab-size', dest="target_vocab_size",
                         type=int, default=defaults.TARGET_VOCAB_SIZE,
                         help=('Target vocabulary size, default=%s'
@@ -163,6 +170,7 @@ def main(args, defaults):
             data_base_dir=parameters.data_base_dir,
             output_dir=parameters.output_dir,
             tb_logs=parameters.tb_logs,
+            tb_log_every=parameters.tb_log_every,
             batch_size=parameters.batch_size,
             initial_learning_rate=parameters.initial_learning_rate,
             num_epoch=parameters.num_epoch,

@@ -34,6 +34,7 @@ class Model(object):
                  data_base_dir,
                  output_dir,
                  tb_logs,
+                 tb_log_every,
                  batch_size,
                  initial_learning_rate,
                  num_epoch,
@@ -118,6 +119,7 @@ class Model(object):
         self.phase = phase
         self.visualize = visualize
         self.tb_logs = tb_logs
+        self.tb_log_every = tb_log_every
 
         if phase == 'train':
             self.forward_only = False
@@ -381,6 +383,10 @@ class Model(object):
 
                     # Once in a while, we save checkpoint, print statistics,
                     # and run evals.
+                    if current_step % self.tb_log_every == 0:
+                        summary_str = self.sess.run(self.summary_op)
+                        summary_writer.add_summary(summary_str, current_step)
+
                     if current_step % self.steps_per_checkpoint == 0:
                         # Print statistics for the previous epoch.
                         perplexity = math.exp(loss) if loss < 300 else float(
@@ -396,8 +402,7 @@ class Model(object):
                                 epoch, current_step, loss, perplexity,
                                 curr_step_time))
 
-                        summary_str = self.sess.run(self.summary_op)
-                        summary_writer.add_summary(summary_str, current_step)
+
 
                         # Save checkpoint and zero timer and loss.
                         if not self.forward_only:
