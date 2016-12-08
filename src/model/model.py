@@ -200,7 +200,7 @@ class Model(object):
             if ':0' in name:
                 name = name.replace(':0', '')
             params_dict[name] = param
-            _activation_summary(param)
+            self._activation_summary(param)
             # if 'Adadelta' in param.name and ('batch' in param.name or
             # 'conv' in param.name):
             #    params_add.append(param)
@@ -396,7 +396,7 @@ class Model(object):
                                 epoch, current_step, loss, perplexity,
                                 curr_step_time))
 
-                        summary_str = sess.run(self.summary_op)
+                        summary_str = self.sess.run(self.summary_op)
                         summary_writer.add_summary(summary_str, current_step)
 
                         # Save checkpoint and zero timer and loss.
@@ -472,7 +472,7 @@ class Model(object):
             1 + self.buckets[bucket_id][
                 1]):]  # No gradient norm, loss, outputs, attentions.
 
-    def _activation_summary(x) :
+    def _activation_summary(self, x) :
         """Helper to create summaries for activations.
         Creates a summary that provides a histogram of activations.
         Creates a summary that measures the sparsity of activations.
