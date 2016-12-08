@@ -151,6 +151,7 @@ class Model(object):
                 forward_only=self.forward_only,
                 use_gru=use_gru)
 
+
         # Gradients and SGD update operation for training the model.
         params_raw = tf.trainable_variables()
         params = []
@@ -218,6 +219,11 @@ class Model(object):
             #    params_load.append(param)
             # else:
             #    params_init.append(param)
+        #for b_id, loss in enumerate(self.attention_decoder_model.losses):
+        #    print(loss)
+        #    tf.scalar_summary("Bucket loss/" + str(buckets[b_id]), loss)
+        #    tf.scalar_summary("Bucket perplexity/" + str(buckets[b_id]),
+        #                      tf.exp(loss))
 
         self.summary_op = tf.merge_all_summaries()
         self.saver_all = tf.train.Saver(params_dict)
@@ -383,9 +389,20 @@ class Model(object):
 
                     # Once in a while, we save checkpoint, print statistics,
                     # and run evals.
+                    loss_dumps_path = os.path.join(self.tb_logs,
+                                                   'loss_perp_log.tsv')
                     if current_step % self.tb_log_every == 0:
                         summary_str = self.sess.run(self.summary_op)
                         summary_writer.add_summary(summary_str, current_step)
+                        perplexity = math.exp(step_loss) if loss < 300 else float('inf')
+                        with open(loss_dumps_path, "a") as myfile :
+                            myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                                time.time(),
+                                epoch,
+                                current_step,
+                                step_loss,
+                                perplexity,
+                                curr_step_time))
 
                     if current_step % self.steps_per_checkpoint == 0:
                         # Print statistics for the previous epoch.
@@ -491,7 +508,7 @@ class Model(object):
         # session. This helps the clarity of presentation on tensorboard.
         tensor_name = x.name
         tf.histogram_summary(tensor_name + '/activations', x)
-        tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
+        #tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
     def visualize_attention(self, filename, attentions, output_valid,
                             ground_valid, flag_incorrect, real_len):
