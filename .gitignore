@@ -116,3 +116,5 @@ evaluation_data/
 results/
 train_batch_1_100000000/
 data/
+*logs*
+train*
