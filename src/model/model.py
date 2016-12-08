@@ -234,6 +234,7 @@ class Model(object):
 
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path) and load_model:
+            self.model_loaded = True
             logging.info("Reading model parameters from %s" %
                          ckpt.model_checkpoint_path)
             # self.saver.restore(self.sess, ckpt.model_checkpoint_path)
@@ -242,6 +243,7 @@ class Model(object):
                 for param in params_run:
                     self.sess.run([param.assign(tf.square(param))])
         else:
+            self.model_loaded = False
             logging.info("Created model with fresh parameters.")
             self.sess.run(tf.initialize_all_variables())
 
@@ -395,14 +397,25 @@ class Model(object):
                         summary_str = self.sess.run(self.summary_op)
                         summary_writer.add_summary(summary_str, current_step)
                         perplexity = math.exp(step_loss) if loss < 300 else float('inf')
-                        with open(loss_dumps_path, "a") as myfile :
-                            myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
-                                time.time(),
-                                epoch,
-                                current_step,
-                                step_loss,
-                                perplexity,
-                                curr_step_time))
+                        if self.model_loaded:
+                            with open(loss_dumps_path, "a") as myfile :
+                                myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                                    time.time(),
+                                    epoch,
+                                    current_step,
+                                    step_loss,
+                                    perplexity,
+                                    curr_step_time))
+                        else:
+                            with open(loss_dumps_path, "w") as myfile :
+                                myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                                    time.time(),
+                                    epoch,
+                                    current_step,
+                                    step_loss,
+                                    perplexity,
+                                    curr_step_time))
+                                self.model_loaded = True
 
                     if current_step % self.steps_per_checkpoint == 0:
                         # Print statistics for the previous epoch.
