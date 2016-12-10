@@ -17,6 +17,8 @@ from .cnn import CNN
 from .seq2seq_model import Seq2SeqModel
 from data_util.data_gen import DataGen
 from scipy import signal
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 try:
     import distance
@@ -174,9 +176,10 @@ class Model(object):
             # self.gradient_norms = []
             self.updates = []
             with tf.device(gpu_device_id):
-                opt = tf.train.AdadeltaOptimizer(
-                    learning_rate=initial_learning_rate, rho=0.95,
-                    epsilon=1e-08, use_locking=False, name='Adadelta')
+                #opt = tf.train.AdadeltaOptimizer(
+                #    learning_rate=initial_learning_rate, rho=0.95,
+                #    epsilon=1e-08, use_locking=False, name='Adadelta')
+                opt = tf.train.AdamOptimizer(learning_rate=initial_learning_rate)
                 for b in xrange(len(buckets)):
                     gradients = tf.gradients(
                         self.attention_decoder_model.losses[b], params)
@@ -530,16 +533,18 @@ class Model(object):
         else:
             output_dir = os.path.join(self.output_dir, 'correct')
         output_dir = os.path.join(output_dir, filename.split("/")[-1].split(
-            ".")[0])
+            ".")[0] + filename.split("/")[-1].split(".")[1])
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         with open(os.path.join(output_dir, 'word.txt'), 'w') as fword:
-            fword.write(' '.join(
-                [chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48)
-                 for c in ground_valid]) + '\n')
-            fword.write(' '.join(
+            gt_str = ' '.join([chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48)
+                 for c in ground_valid])
+            fword.write(gt_str + '\n')
+
+            output_str = ' '.join(
                 [chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48) for c
-                 in output_valid]))
+                 in output_valid])
+            fword.write(output_str)
 
             # with open(filename, 'rb') as img_file:
             img = np.load(filename)
@@ -547,30 +552,55 @@ class Model(object):
             h = 10
 
             img = signal.resample(img, real_len)
-            img = img.transpose()
-            img_data = np.asarray(img, dtype=np.uint8)
+            #img = img.transpose()
+            img_data = np.asarray(img, dtype=np.float32)
+            out_attns = []
+            output_filename = os.path.join(output_dir,'image.png')
             for idx in range(len(output_valid)):
-                output_filename = os.path.join(output_dir,
-                                               'image_%d.jpg' % (idx))
-                attention = attentions[idx][:(int(real_len / 4) - 1)]
+
+                attention = attentions[idx][:(int(real_len / 16) - 1)]
 
                 # I have got the attention_orig here, which is of size 32*len(ground_truth), the only thing left is to visualize it and save it to output_filename
                 # TODO here
                 attention_orig = np.zeros(real_len)
                 for i in range(real_len):
-                    if 0 < i / 4 - 1 and i / 4 - 1 < len(attention):
-                        attention_orig[i] = attention[int(i / 4) - 1]
+                    if 0 < i / 16 - 1 and i / 16 - 1 < len(attention):
+                        attention_orig[i] = attention[int(i / 16) - 1]
                 attention_orig = np.convolve(attention_orig,
                                              [0.199547, 0.200226, 0.200454,
                                               0.200226, 0.199547], mode='same')
-                attention_orig = np.maximum(attention_orig, 0.3)
+                #attention_orig = np.maximum(attention_orig, 0.3)
                 attention_out = np.zeros((h, real_len))
                 for i in range(real_len):
                     attention_out[:, i] = attention_orig[i]
-                if len(img_data.shape) == 3:
-                    attention_out = attention_out[:, :, np.newaxis]
-                img_out_data = img_data * attention_out
-                img_out = Image.fromarray(img_out_data.astype(np.uint8))
-                img_out.save(output_filename)
+                #if len(img_data.shape) == 3:
+                #    attention_out = attention_out[:, :, np.newaxis]
+
+                out_attns.append(attention_orig)
+                #img_out_data = img_data * attention_out
+                #img_out = Image.fromarray(img_out_data.astype(np.uint8))
+                #img_out.save(output_filename)
                 # print (output_filename)
                 # assert False
+            out_attns = np.vstack(out_attns)
+            out_attns = out_attns.transpose()
+            img_np = np.array(img_data)
+            rows, cols = img_np.shape[0], img_np.shape[1]
+
+            f1 = plt.figure()
+            #f2 = plt.figure()
+            ax1 = f1.add_subplot(121)
+
+            ax2 = f1.add_subplot(122)
+
+            y_axis_ticks = np.arange(0, rows, 1)
+            #x_axis_ticks = np.arange(1, rows, 1)
+            for i in range(cols):
+                dat = img_np[:, i]
+                ax1.plot(dat, y_axis_ticks)
+
+            #ax1.set_title('Sharing Y axis')
+            ax2.imshow(out_attns, interpolation='nearest', aspect='auto', cmap=cm.jet)
+            #ax2.set_xticks(output_str.split(' '))
+            #plt.show()
+            plt.savefig(output_filename, bbox_inches='tight', dpi=1000)

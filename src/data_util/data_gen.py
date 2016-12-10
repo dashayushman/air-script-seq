@@ -35,24 +35,18 @@ class DataGen(object):
             self.annotation_path = os.path.join(data_root, annotation_fn)
 
         if evaluate:
-            self.bucket_specs = [(240 / 16, word_len + 2),
-                                 (400 / 16, word_len + 2),
-                                 (600 / 16, word_len + 2),
+            self.bucket_specs = [(400 / 16, word_len + 2),
                                  (800 / 16, word_len + 2),
-                                 (1000 / 16, word_len + 2),
                                  (1200 / 16, word_len + 2),
                                  (1800 / 16, word_len + 2),
                                  (img_width_range[1] / 16, word_len + 2)]
         else:
-            self.bucket_specs = [(230 / 16, 2 + 2),
-                                 (400 / 16, 4 + 2),
-                                 (600 / 16, 6 + 2),
-                                 (800 / 16, 8 + 2),
-                                 (1000 / 16, 8 + 2),
+            self.bucket_specs = [(400 / 16, 4 + 2),
+                                 (800 / 16, 6 + 2),
                                  (1200 / 16, 9 + 2),
                                  (1800 / 16, 10 + 2),
                                  (img_width_range[1] / 16, word_len + 2)]
-        self.bins = [230, 400, 600, 800, 1000, 1200, 1800, img_width_range[1]]
+        self.bins = [400, 800, 1200, 1800, img_width_range[1]]
         #for bucket in self.bucket_specs:
         #    self.bins.append(bucket[0])
 
