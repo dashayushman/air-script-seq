@@ -1,16 +1,15 @@
-__author__ = 'dash'
+__author__ = 'Ayushman Dash'
 
 import os
 import numpy as np
-from PIL import Image
-# from keras.preprocessing.sequence import pad_sequences
-from collections import Counter
-import cPickle
-import random
+
 
 
 class BucketData(object):
     def __init__(self):
+        '''
+        Bucket data object initializer.
+        '''
         self.max_width = 0
         self.max_label_len = 0
         self.data_list = []
@@ -18,6 +17,13 @@ class BucketData(object):
         self.file_list = []
 
     def append(self, datum, label, filename) :
+        '''
+        Appends data to the bucket lists
+        :param datum: data instance
+        :param label: label of the data instance
+        :param filename: name of the file
+        :return:
+        '''
         self.data_list.append(datum)
         self.label_list.append(label)
         self.file_list.append(filename)
@@ -29,7 +35,14 @@ class BucketData(object):
 
     def flush_out(self, bucket_specs, valid_target_length=float('inf'),
                   go_shift=1):
-        # print self.max_width, self.max_label_len
+        '''
+        Flushes the data for yielding
+        :param bucket_specs: Specification of the bucket from data_util
+        :param valid_target_length: target length
+        :param go_shift: Flag to shift
+        :return: response object to be yield
+        '''
+
         res = dict(bucket_id=None,
                    data=None, zero_paddings=None, encoder_mask=None,
                    decoder_inputs=None, target_weights=None, real_len=None)

@@ -1,9 +1,6 @@
-__author__ = 'moonkey'
+__author__ = 'Ayushman Dash'
 
 import sys, argparse, logging
-
-import numpy as np
-from PIL import Image
 import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.ERROR)

@@ -1,10 +1,9 @@
+__author__ = 'Ayushman Dash'
+
 import argparse, logging, sys, os, time
 from utils import dataprep as dp
-from datasource.data import DataSet
 from sklearn.model_selection import StratifiedShuffleSplit
 import numpy as np
-
-
 
 def process_args(args) :
     '''
@@ -90,7 +89,7 @@ def initialize_logger(log_dir) :
 
 def dump_sequences(dir, data_seqs, lbl_seqs, print_every=100) :
     '''
-    Dumps the data sequences into a
+    Dumps the data sequences into a directory in a structure
     :param dir: dir to dump data
     :param data_seqs: data sequences
     :param lbl_seqs: label sequences

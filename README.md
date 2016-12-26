@@ -1,18 +1,19 @@
-# Attention-OCR
-Authours: [Qi Guo](http://qiguo.ml) and [Yuntian Deng](https://github.com/da03)
+<div style="text-align:center"><img src ="https://sigvoiced.files.wordpress.com/2016/12/logo_name2.png" /></div>
+-----------------------------------------
 
-Visual Attention based OCR. The model first runs a sliding CNN on the image (images are resized to height 32 while preserving aspect ratio). Then an LSTM is stacked on top of the CNN. Finally, an attention model is used as a decoder for producing the final outputs.
+**Air-Script** is a CNN + Sequence to Sequence model for detecting handwriting on air using a Myo-Armband. It is Inspired by ‘Recursive Recurrent Nets with Attention Modeling for OCR in the Wild’ by [Chen-Yu & Simon, 2016](https://arxiv.org/abs/1603.03101). The idea was to use 1D-CNNs as feature extractors and a sequence to sequence model with Attention mechanism introduced by [Bahdanau et al., 2014](https://arxiv.org/abs/1409.0473) using LSTMs for variable length sequence classification.
 
-![example image 0](http://cs.cmu.edu/~yuntiand/OCR-2.jpg)
+The Implementation of [Attention-OCR](https://github.com/da03/Attention-OCR) was extremely helpful and Air-Script was built upon it. This project comes does not give results as expected and is currently under development. Probable issues have been tracked a list of further tasks have been mentioned at the end of this document and is being updated regularly too.
 
 # Prerequsites
-Most of our code is written based on Tensorflow, but we also use Keras for the convolution part of our model. Besides, we use python package distance to calculate edit distance for evaluation. (However, that is not mandatory, if distance is not installed, we will do exact match).
+1. [Tensorflow](https://www.tensorflow.org/) (Version 0.11.0)
+2. [Keras](http://keras.io/#installation) (Version 1.1.1)
+3. [Distance (Optional)](http://www.cs.cmu.edu/~yuntiand/Distance-0.1.3.tar.gz)
+3. Python 2.7
 
-### Tensorflow: [Installation Instructions](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html) (tested on 0.11.0)
+**I have tested it on an Ubuntu 14.04 and 15.04 with NVIDIA GeForce GT 740M and NVIDIA TITAN X Graphics card with Tensorflow running in a virtual environment. It should ideally run smoothly on any other system with the above packages installed in it.**
 
-### Keras: [Installation Instructions](http://keras.io/#installation) (tested on 1.1.1)
-
-Set Keras backend:
+###Set Keras backend:
 
 ```
 export KERAS_BACKEND=tensorflow
@@ -22,7 +23,7 @@ export KERAS_BACKEND=tensorflow
 echo 'export KERAS_BACKEND=tensorflow' >> ~/.bashrc
 ```
 
-### Distance (Optional):
+### Install Distance (Optional):
 
 ```
 wget http://www.cs.cmu.edu/~yuntiand/Distance-0.1.3.tar.gz
@@ -36,157 +37,110 @@ tar zxf Distance-0.1.3.tar.gz
 cd distance; sudo python setup.py install
 ```
 
-# Usage:
+# The Idea
 
-Note: We assume that the working directory is `Attention-OCR`.
+The idea was to learn features using a 1D Convolutional Neural Network and then align input sequences (raw IMU signals from Myo-Armband) with output sequences (sequence of characters) using a sequence to sequence model [Sutskever et al., 2014](https://arxiv.org/abs/1409.3215) with attention mechanism. Since our dataset had limited amount of data to train this network, an artificially generated datasets [(Appendix 1)](appendix) of various sizes were used to train the network.
 
-## Train
+# Model Architecture
+![Model Architecture](https://sigvoiced.files.wordpress.com/2016/12/model-architecture2.png)
+[Figure 1] The high level Model Architecture showing the encoder and decoder with attention
+
+### Components
+
+**The model consists of the following components**
+
+1. **Encoder (1D-CNN):** Which like the encoder of an auto-encoder, encodes the input sequence into a feature vector which is decoded into the output sequence.  
+
+2. **Decoder (LSTM Network + Attention):** A stacked LSTM network with attention was used to decode the feature vector into an output sequence. Both the feature vector and the output sequence were padded for alignment.
+
+### CNN Model Architecture and specifications
+![CNN Architecture](https://sigvoiced.files.wordpress.com/2016/12/cnn.png)
+
+### Bucketing
+A bucketing technique has been used for padding variable length input and output sequences. The bucket specs for input and output sequence lengths are as follows,
+
+* 400 : 4
+* 800 : 8
+* 1200 : 9
+* 1800 : 11
+* 1900 : 13
+
+These buckets were selected by analyzing the distribution of the lengths of input and output sequences. The bucket sizes that made the input sequence length distribution uniform were selected keeping in mind the distribution of number of timesteps of input sequence per output sequence of a certain length.
+The idea was to not only use the CNN to learn to extracting features from the sensor data  but also to fuse sensor data hierarchically.
+
+### Different Model hyper parameters that were used for experiments and the corresponding dataset specs
+
+Parameters | Model 1 | Model 2
+--- | --- | --- 
+**Min. Output Sequence Length** | 1 | 1 |
+**Max. Output Sequence Length** | 10 | 10
+**Number of training instances** | 100000 | 100000 
+**Number of testing instances** | 1000 | 1000
+**Batch Size** | 64 | 64
+**LSTM Layers** | 3 | 2
+**Initial learning rate** | 0.0001 | 0.001
+**LSTM Hidden units** | 128 | 128
+**Optimizer** | ADADelta | ADAM
+**Epochs** | 38 (approx) (55,800 Iterations) | 10 (approx) (15,6000 Iterations)
+
+***Other models were also trained and tested with slight variations in the hyper parameters and a smaller and larger dataset of sizes 1000 and 1000000 instances.***
 
 ### Data Preparation
-We need a file (specified by parameter `data-path`) containing the path of images and the corresponding characters, e.g.:
+The data used for training and evaluation has been acquired using Myo-Armband and [Pewter](https://github.com/sigvoiced/pewter) and the data creator module has been used to process the data.
 
-```
-path/to/image1 abc
-path/to/image2 def
-```
+# Results
+The results are not as expected. The model overfits and can be made better by just a few tweaks. It learns and the perplexity reduces while training but the results are not good.
 
-And we also need to specify a `data-base-dir` parameter such that we read the images from path `data-base-dir/path/to/image`. If `data-path` contains absolute path of images, then `data-base-dir` needs to be set to `/`.
+### Loss
+![Loss curve](https://sigvoiced.files.wordpress.com/2016/12/lc.png)
 
-### A Toy Example
+### Perplexity
+![Perplexity curve](https://sigvoiced.files.wordpress.com/2016/12/perp.png)
 
-For a toy example, we have prepared a training dataset of the specified format, which is a subset of [Synth 90k](http://www.robots.ox.ac.uk/~vgg/data/text/)
+### Output
+![Output](https://sigvoiced.files.wordpress.com/2016/12/results.png)
+[Figure 2] The results are shown in two parts each. The left hand side shows the Input data sequence. The right hand side shows the heatmap of the attention vector over the input sequence and the title shows the predicted output sequence and the Ground Truth sequence
 
-```
-wget http://www.cs.cmu.edu/~yuntiand/sample.tgz
-```
+# Conclusion
+It is evident from the results thet they are not good. The resons could have been many and I am still working on fixing them. Some issues are obvious and some need a lot of experimentation.
 
-```
-tar zxf sample.tgz
-```
+# Probable Solution to Issues
 
-```
-python src/launcher.py --phase=train --data-path=sample/sample.txt --data-base-dir=sample --log-path=log.txt --no-load-model
-```
+1. Try different CNN architectures by fusing the sensor data at different levels and changing the sizes of the layers and filters.
 
-After a while, you will see something like the following output in `log.txt`:
+2. Pre-train the CNN with existing datasets available for gesture classification and then use it in the above model.
 
-```
-...
-2016-06-08 20:47:22,335 root  INFO     Created model with fresh parameters.
-2016-06-08 20:47:52,852 root  INFO     current_step: 0
-2016-06-08 20:48:01,253 root  INFO     step_time: 8.400597, step perplexity: 38.998714
-2016-06-08 20:48:01,385 root  INFO     current_step: 1
-2016-06-08 20:48:07,166 root  INFO     step_time: 5.781749, step perplexity: 38.998445
-2016-06-08 20:48:07,337 root  INFO     current_step: 2
-2016-06-08 20:48:12,322 root  INFO     step_time: 4.984972, step perplexity: 39.006730
-2016-06-08 20:48:12,347 root  INFO     current_step: 3
-2016-06-08 20:48:16,821 root  INFO     step_time: 4.473902, step perplexity: 39.000267
-2016-06-08 20:48:16,859 root  INFO     current_step: 4
-2016-06-08 20:48:21,452 root  INFO     step_time: 4.593249, step perplexity: 39.009864
-2016-06-08 20:48:21,530 root  INFO     current_step: 5
-2016-06-08 20:48:25,878 root  INFO     step_time: 4.348195, step perplexity: 38.987707
-2016-06-08 20:48:26,016 root  INFO     current_step: 6
-2016-06-08 20:48:30,851 root  INFO     step_time: 4.835423, step perplexity: 39.022887
-```
+3. Replace CNN with MFCC features and directly apply the Seq2Seq model with attention.
 
-Note that it takes quite a long time to reach convergence, since we are training the CNN and attention model simultaneously.
+4. Preprocess the data before encoding.
 
-## Test and visualize attention results
+5. Replace CNN with BLSTM as an encoder.
 
-The test data format shall be the same as training data format. We have also prepared a test dataset of the specified format, which includes ICDAR03, ICDAR13, IIIT5k and SVT.
+6. Visualize CNN features using t-SNE and check if they actually make sense or not.
 
-```
-wget http://www.cs.cmu.edu/~yuntiand/evaluation_data.tgz
-```
+# Appendix
 
-```
-tar zxf evaluation_data.tgz
-```
+# 1. Data Generation
+Artificial datasets were generated by,
 
-We also provide a trained model on Synth 90K:
+1. Generating random output sequences using the given labels. Eg, “100289”
+2. For every label (character) in the generated output sequence, a random data instance (input sequence for a character) was picked from the original dataset corresponding to the same label.
+3. These randomly picked data instances were concatenated to form an input sequence.
 
-```
-wget http://www.cs.cmu.edu/~yuntiand/model.tgz
-```
+The artificial datasets consisted of such input and output sequences.
 
-```
-tar zxf model.tgz
-```
-
-```
-python src/launcher.py --phase=test --visualize --data-path=evaluation_data/svt/test.txt --data-base-dir=evaluation_data/svt --log-path=log.txt --load-model --model-dir=model --output-dir=results --old-model-version
-```
-
-After a while, you will see something like the following output in `log.txt`:
-
-```
-2016-06-08 22:36:31,638 root  INFO     Reading model parameters from model/translate.ckpt-47200
-2016-06-08 22:36:40,529 root  INFO     Compare word based on edit distance.
-2016-06-08 22:36:41,652 root  INFO     step_time: 1.119277, step perplexity: 1.056626
-2016-06-08 22:36:41,660 root  INFO     1.000000 out of 1 correct
-2016-06-08 22:36:42,358 root  INFO     step_time: 0.696687, step perplexity: 2.003350
-2016-06-08 22:36:42,363 root  INFO     1.666667 out of 2 correct
-2016-06-08 22:36:42,831 root  INFO     step_time: 0.466550, step perplexity: 1.501963
-2016-06-08 22:36:42,835 root  INFO     2.466667 out of 3 correct
-2016-06-08 22:36:43,402 root  INFO     step_time: 0.562091, step perplexity: 1.269991
-2016-06-08 22:36:43,418 root  INFO     3.366667 out of 4 correct
-2016-06-08 22:36:43,897 root  INFO     step_time: 0.477545, step perplexity: 1.072437
-2016-06-08 22:36:43,905 root  INFO     4.366667 out of 5 correct
-2016-06-08 22:36:44,107 root  INFO     step_time: 0.195361, step perplexity: 2.071796
-2016-06-08 22:36:44,127 root  INFO     5.144444 out of 6 correct
-
-```
-
-Note that since the updated Keras defines `running_std` different from when we trained our model, you need to add flag `--old-model-version` if you want to use the pretrained model.
-
-Example output images in `results/correct` (the output directory is set via parameter `output-dir` and the default is `results`): (Look closer to see it clearly.)
-
-Format: Image `index` (`predicted`/`ground truth`) `Image file`
-
-Image 0 (j/j): ![example image 0](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_0.jpg)
-
-Image 1 (u/u): ![example image 1](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_1.jpg)
-
-Image 2 (n/n): ![example image 2](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_2.jpg)
-
-Image 3 (g/g): ![example image 3](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_3.jpg)
-
-Image 4 (l/l): ![example image 4](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_4.jpg)
-
-Image 5 (e/e): ![example image 5](http://cs.cmu.edu/~yuntiand/2evaluation_data_icdar13_images_word_370.png/image_5.jpg)
-
-
-# Parameters:
-
-- Control
-    * `phase`: Determine whether to train or test.
-    * `visualize`: Valid if `phase` is set to test. Output the attention maps on the original image.
-    * `load-model`: Load model from `model-dir` or not.
-
-- Input and output
-    * `data-base-dir`: The base directory of the image path in `data-path`. If the image path in `data-path` is absolute path, set it to `/`.
-    * `data-path`: The path containing data file names and labels. Format per line: `image_path characters`.
-    * `model-dir`: The directory for saving and loading model parameters (structure is not stored).
-    * `log-path`: The path to put log.
-    * `output-dir`: The path to put visualization results if `visualize` is set to True.
-    * `steps-per-checkpoint`: Checkpointing (print perplexity, save model) per how many steps
-
-- Optimization
-    * `num-epoch`: The number of whole data passes.
-    * `batch-size`: Batch size. Only valid if `phase` is set to train.
-    * `initial-learning-rate`: Initial learning rate, note the we use AdaDelta, so the initial value doe not matter much.
-
-- Network
-    * `target-embedding-size`: Embedding dimension for each target.
-    * `attn-use-lstm`: Whether or not use LSTM attention decoder cell.
-    * `attn-num-hidden`: Number of hidden units in attention decoder cell.
-    * `attn-num-layers`: Number of layers in attention decoder cell. (Encoder number of hidden units will be `attn-num-hidden`*`attn-num-layers`).
-    * `target-vocab-size`: Target vocabulary size. Default is = 26+10+3 # 0: PADDING, 1: GO, 2: EOS, >2: 0-9, a-z
+***No preprocessing was done on the generated data and output sequences of minimum length 1 and maximum length 10 were generated.***
     
 # References
 
-[Convert a formula to its LaTex source](https://github.com/harvardnlp/im2markup)
+[Tensorflow](https://www.tensorflow.org/)
 
-[What You Get Is What You See: A Visual Markup Decompiler](https://arxiv.org/pdf/1609.04938.pdf)
+[Keras](https://keras.io/)
 
-[Torch attention OCR](https://github.com/da03/torch-Attention-OCR)
+[Distance](https://pypi.python.org/pypi/Distance/)
+
+[Attention-OCR](https://github.com/da03/Attention-OCR)
+
+[Recursive Recurrent Nets with Attention Modeling for OCR in the Wild](https://arxiv.org/abs/1603.03101)
+
+[Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473)

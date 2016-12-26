@@ -86,8 +86,8 @@ class Model(object):
             logging.info('ues GRU in the decoder.')
 
         # variables
-        self.img_data = tf.placeholder(tf.float32, shape=(None, 1, 10, None),
-                                       name='img_data')
+        self.seq_data = tf.placeholder(tf.float32, shape=(None, 1, 10, None),
+                                       name='seq_data')
         self.zero_paddings = tf.placeholder(tf.float32, shape=(None, None, 512),
                                             name='zero_paddings')
 
@@ -129,7 +129,7 @@ class Model(object):
             assert False, phase
 
         with tf.device(gpu_device_id):
-            cnn_model = CNN(self.img_data)
+            cnn_model = CNN(self.seq_data)
             self.conv_output = cnn_model.tf_output()
             self.concat_conv_output = tf.concat(concat_dim=1,
                                                 values=[self.conv_output,
@@ -260,7 +260,7 @@ class Model(object):
                 # Get a batch and make a step.
                 start_time = time.time()
                 bucket_id = batch['bucket_id']
-                img_data = batch['data']
+                seq_data = batch['data']
                 zero_paddings = batch['zero_paddings']
                 decoder_inputs = batch['decoder_inputs']
                 target_weights = batch['target_weights']
@@ -272,7 +272,7 @@ class Model(object):
                     [decoder_input.tolist() for decoder_input in
                      decoder_inputs]).transpose()]
                 _, step_loss, step_logits, step_attns = self.step(encoder_masks,
-                                                                  img_data,
+                                                                  seq_data,
                                                                   zero_paddings,
                                                                   decoder_inputs,
                                                                   target_weights,
@@ -342,7 +342,7 @@ class Model(object):
                     # Get a batch and make a step.
                     start_time = time.time()
                     bucket_id = batch['bucket_id']
-                    img_data = batch['data']
+                    seq_data = batch['data']
                     zero_paddings = batch['zero_paddings']
                     decoder_inputs = batch['decoder_inputs']
                     target_weights = batch['target_weights']
@@ -355,7 +355,7 @@ class Model(object):
                     # target_weight in target_weights]).transpose()[0])
 
                     _, step_loss, step_logits, _ = self.step(encoder_masks,
-                                                             img_data,
+                                                             seq_data,
                                                              zero_paddings,
                                                              decoder_inputs,
                                                              target_weights,
@@ -416,7 +416,7 @@ class Model(object):
                         # sys.stdout.flush()
 
     # step, read one batch, generate gradients
-    def step(self, encoder_masks, img_data, zero_paddings, decoder_inputs,
+    def step(self, encoder_masks, seq_data, zero_paddings, decoder_inputs,
              target_weights,
              bucket_id, forward_only):
         # Check if the sizes match.
@@ -437,7 +437,7 @@ class Model(object):
             input_feed[K.learning_phase()] = 1
         else:
             input_feed[K.learning_phase()] = 0
-        input_feed[self.img_data.name] = img_data
+        input_feed[self.seq_data.name] = seq_data
         input_feed[self.zero_paddings.name] = zero_paddings
         for l in xrange(decoder_size):
             input_feed[self.decoder_inputs[l].name] = decoder_inputs[l]
@@ -511,21 +511,21 @@ class Model(object):
                 [chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48) for c
                  in output_valid]))
 
-            # with open(filename, 'rb') as img_file:
-            img = np.load(filename)
-            w, h = img.shape
+            # with open(filename, 'rb') as seq_file:
+            seq = np.load(filename)
+            w, h = seq.shape
             h = 10
 
-            img = signal.resample(img, real_len)
-            img = img.transpose()
-            img_data = np.asarray(img, dtype=np.uint8)
+            seq = signal.resample(seq, real_len)
+            seq = seq.transpose()
+            seq_data = np.asarray(seq, dtype=np.uint8)
             for idx in range(len(output_valid)):
                 output_filename = os.path.join(output_dir,
                                                'image_%d.jpg' % (idx))
                 attention = attentions[idx][:(int(real_len / 4) - 1)]
 
-                # I have got the attention_orig here, which is of size 32*len(ground_truth), the only thing left is to visualize it and save it to output_filename
-                # TODO here
+                # I have got the attention_orig here, which is of size 32*len(ground_truth),
+                #  the only thing left is to visualize it and save it to output_filename
                 attention_orig = np.zeros(real_len)
                 for i in range(real_len):
                     if 0 < i / 4 - 1 and i / 4 - 1 < len(attention):
@@ -537,10 +537,9 @@ class Model(object):
                 attention_out = np.zeros((h, real_len))
                 for i in range(real_len):
                     attention_out[:, i] = attention_orig[i]
-                if len(img_data.shape) == 3:
+                if len(seq_data.shape) == 3:
                     attention_out = attention_out[:, :, np.newaxis]
-                img_out_data = img_data * attention_out
-                img_out = Image.fromarray(img_out_data.astype(np.uint8))
-                img_out.save(output_filename)
-                # print (output_filename)
-                # assert False
+                seq_out_data = seq_data * attention_out
+                seq_out = Image.fromarray(seq_out_data.astype(np.uint8))
+                seq_out.save(output_filename)
+
