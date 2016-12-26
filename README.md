@@ -104,12 +104,17 @@ The results are not as expected. The model overfits and can be made better by ju
 ### Loss
 ![Loss curve](https://sigvoiced.files.wordpress.com/2016/12/lc.png)
 
+[Figure 5] The loss curve of the models that were experimented with
+
 ### Perplexity
 ![Perplexity curve](https://sigvoiced.files.wordpress.com/2016/12/perp.png)
 
+[Figure 6] The Perplexity curve of the models that were experimented with
+
 ### Output
 ![Output](https://sigvoiced.files.wordpress.com/2016/12/results.png)
-[Figure 5] The results are shown in two parts each. The left hand side shows the Input data sequence. The right hand side shows the heatmap of the attention vector over the input sequence and the title shows the predicted output sequence and the Ground Truth sequence
+
+[Figure 7] The results are shown in two parts each. The left hand side shows the Input data sequence. The right hand side shows the heatmap of the attention vector over the input sequence and the title shows the predicted output sequence and the Ground Truth sequence
 
 # Conclusion
 It is evident from the results thet they are not good. The resons could have been many and I am still working on fixing them. Some issues are obvious and some need a lot of experimentation.
