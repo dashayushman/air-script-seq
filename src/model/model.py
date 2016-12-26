@@ -17,6 +17,8 @@ from .cnn import CNN
 from .seq2seq_model import Seq2SeqModel
 from data_util.data_gen import DataGen
 from scipy import signal
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 try:
     import distance
@@ -151,6 +153,7 @@ class Model(object):
                 forward_only=self.forward_only,
                 use_gru=use_gru)
 
+
         # Gradients and SGD update operation for training the model.
         params_raw = tf.trainable_variables()
         params = []
@@ -173,9 +176,10 @@ class Model(object):
             # self.gradient_norms = []
             self.updates = []
             with tf.device(gpu_device_id):
-                opt = tf.train.AdadeltaOptimizer(
-                    learning_rate=initial_learning_rate, rho=0.95,
-                    epsilon=1e-08, use_locking=False, name='Adadelta')
+                #opt = tf.train.AdadeltaOptimizer(
+                #    learning_rate=initial_learning_rate, rho=0.95,
+                #    epsilon=1e-08, use_locking=False, name='Adadelta')
+                opt = tf.train.AdamOptimizer(learning_rate=initial_learning_rate)
                 for b in xrange(len(buckets)):
                     gradients = tf.gradients(
                         self.attention_decoder_model.losses[b], params)
@@ -218,6 +222,11 @@ class Model(object):
             #    params_load.append(param)
             # else:
             #    params_init.append(param)
+        #for b_id, loss in enumerate(self.attention_decoder_model.losses):
+        #    print(loss)
+        #    tf.scalar_summary("Bucket loss/" + str(buckets[b_id]), loss)
+        #    tf.scalar_summary("Bucket perplexity/" + str(buckets[b_id]),
+        #                      tf.exp(loss))
 
         self.summary_op = tf.merge_all_summaries()
         self.saver_all = tf.train.Saver(params_dict)
@@ -228,6 +237,7 @@ class Model(object):
 
         ckpt = tf.train.get_checkpoint_state(model_dir)
         if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path) and load_model:
+            self.model_loaded = True
             logging.info("Reading model parameters from %s" %
                          ckpt.model_checkpoint_path)
             # self.saver.restore(self.sess, ckpt.model_checkpoint_path)
@@ -236,6 +246,7 @@ class Model(object):
                 for param in params_run:
                     self.sess.run([param.assign(tf.square(param))])
         else:
+            self.model_loaded = False
             logging.info("Created model with fresh parameters.")
             self.sess.run(tf.initialize_all_variables())
 
@@ -383,9 +394,31 @@ class Model(object):
 
                     # Once in a while, we save checkpoint, print statistics,
                     # and run evals.
+                    loss_dumps_path = os.path.join(self.tb_logs,
+                                                   'loss_perp_log.tsv')
                     if current_step % self.tb_log_every == 0:
                         summary_str = self.sess.run(self.summary_op)
                         summary_writer.add_summary(summary_str, current_step)
+                        perplexity = math.exp(step_loss) if loss < 300 else float('inf')
+                        if self.model_loaded:
+                            with open(loss_dumps_path, "a") as myfile :
+                                myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                                    time.time(),
+                                    epoch,
+                                    current_step,
+                                    step_loss,
+                                    perplexity,
+                                    curr_step_time))
+                        else:
+                            with open(loss_dumps_path, "w") as myfile :
+                                myfile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(
+                                    time.time(),
+                                    epoch,
+                                    current_step,
+                                    step_loss,
+                                    perplexity,
+                                    curr_step_time))
+                                self.model_loaded = True
 
                     if current_step % self.steps_per_checkpoint == 0:
                         # Print statistics for the previous epoch.
@@ -480,18 +513,14 @@ class Model(object):
     def _activation_summary(self, x) :
         """Helper to create summaries for activations.
         Creates a summary that provides a histogram of activations.
-        Creates a summary that measures the sparsity of activations.
         Args:
           x: Tensor
         Returns:
           nothing
         """
-        # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU
-        # training
-        # session. This helps the clarity of presentation on tensorboard.
+
         tensor_name = x.name
         tf.histogram_summary(tensor_name + '/activations', x)
-        tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
     def visualize_attention(self, filename, attentions, output_valid,
                             ground_valid, flag_incorrect, real_len):
@@ -500,16 +529,18 @@ class Model(object):
         else:
             output_dir = os.path.join(self.output_dir, 'correct')
         output_dir = os.path.join(output_dir, filename.split("/")[-1].split(
-            ".")[0])
+            ".")[0] + filename.split("/")[-1].split(".")[1])
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         with open(os.path.join(output_dir, 'word.txt'), 'w') as fword:
-            fword.write(' '.join(
-                [chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48)
-                 for c in ground_valid]) + '\n')
-            fword.write(' '.join(
+            gt_str = ' '.join([chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48)
+                 for c in ground_valid])
+            fword.write(gt_str + '\n')
+
+            output_str = ' '.join(
                 [chr(c - 13 + 97) if c - 13 + 97 > 96 else chr(c - 3 + 48) for c
-                 in output_valid]))
+                 in output_valid])
+            fword.write(output_str)
 
             # with open(filename, 'rb') as seq_file:
             seq = np.load(filename)
@@ -517,29 +548,51 @@ class Model(object):
             h = 10
 
             seq = signal.resample(seq, real_len)
-            seq = seq.transpose()
-            seq_data = np.asarray(seq, dtype=np.uint8)
+            #seq = seq.transpose()
+            seq_data = np.asarray(seq, dtype=np.float32)
+            out_attns = []
+            output_filename = os.path.join(output_dir,'image.png')
+
             for idx in range(len(output_valid)):
-                output_filename = os.path.join(output_dir,
-                                               'image_%d.jpg' % (idx))
-                attention = attentions[idx][:(int(real_len / 4) - 1)]
+
+                attention = attentions[idx][:(int(real_len / 16) - 1)]
 
                 # I have got the attention_orig here, which is of size 32*len(ground_truth),
                 #  the only thing left is to visualize it and save it to output_filename
                 attention_orig = np.zeros(real_len)
                 for i in range(real_len):
-                    if 0 < i / 4 - 1 and i / 4 - 1 < len(attention):
-                        attention_orig[i] = attention[int(i / 4) - 1]
+                    if 0 < i / 16 - 1 and i / 16 - 1 < len(attention):
+                        attention_orig[i] = attention[int(i / 16) - 1]
                 attention_orig = np.convolve(attention_orig,
                                              [0.199547, 0.200226, 0.200454,
                                               0.200226, 0.199547], mode='same')
-                attention_orig = np.maximum(attention_orig, 0.3)
+                #attention_orig = np.maximum(attention_orig, 0.3)
                 attention_out = np.zeros((h, real_len))
                 for i in range(real_len):
                     attention_out[:, i] = attention_orig[i]
-                if len(seq_data.shape) == 3:
-                    attention_out = attention_out[:, :, np.newaxis]
-                seq_out_data = seq_data * attention_out
-                seq_out = Image.fromarray(seq_out_data.astype(np.uint8))
-                seq_out.save(output_filename)
+
+                out_attns.append(attention_orig)
+
+            out_attns = np.vstack(out_attns)
+            out_attns = out_attns.transpose()
+            seq_np = np.array(seq_data)
+            rows, cols = seq_np.shape[0], seq_np.shape[1]
+
+            f1 = plt.figure()
+            #f2 = plt.figure()
+            ax1 = f1.add_subplot(121)
+
+            ax2 = f1.add_subplot(122)
+
+            y_axis_ticks = np.arange(0, rows, 1)
+            #x_axis_ticks = np.arange(1, rows, 1)
+            for i in range(cols):
+                dat = seq_np[:, i]
+                ax1.plot(dat, y_axis_ticks)
+
+            #ax1.set_title('Sharing Y axis')
+            ax2.imshow(out_attns, interpolation='nearest', aspect='auto', cmap=cm.jet)
+            #ax2.set_xticks(output_str.split(' '))
+            #plt.show()
+            plt.savefig(output_filename, bbox_inches='tight', dpi=750)
 
