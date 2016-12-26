@@ -55,6 +55,7 @@ The idea was to learn features using a 1D Convolutional Neural Network and then 
 
 ### CNN Model Architecture and specifications
 ![CNN Architecture](https://sigvoiced.files.wordpress.com/2016/12/cnn.png)
+[Figure 2] The CNN architecture used in the experiments
 
 ### Bucketing
 A bucketing technique has been used for padding variable length input and output sequences. The bucket specs for input and output sequence lengths are as follows,
@@ -69,10 +70,10 @@ These buckets were selected by analyzing the distribution of the lengths of inpu
 The idea was to not only use the CNN to learn to extracting features from the sensor data  but also to fuse sensor data hierarchically.
 
 ![Char len hist](https://sigvoiced.files.wordpress.com/2016/12/char_len_hist.png)
-[Figure 2] Character length histogram
+[Figure 3] Character length histogram
 
 ![Char len hist](https://sigvoiced.files.wordpress.com/2016/12/seq_len_hist.png)
-[Figure 3] Input sequence length histogram
+[Figure 4] Input sequence length histogram
 
 ### Different Model hyper parameters that were used for experiments and the corresponding dataset specs
 
@@ -105,7 +106,7 @@ The results are not as expected. The model overfits and can be made better by ju
 
 ### Output
 ![Output](https://sigvoiced.files.wordpress.com/2016/12/results.png)
-[Figure 4] The results are shown in two parts each. The left hand side shows the Input data sequence. The right hand side shows the heatmap of the attention vector over the input sequence and the title shows the predicted output sequence and the Ground Truth sequence
+[Figure 5] The results are shown in two parts each. The left hand side shows the Input data sequence. The right hand side shows the heatmap of the attention vector over the input sequence and the title shows the predicted output sequence and the Ground Truth sequence
 
 # Conclusion
 It is evident from the results thet they are not good. The resons could have been many and I am still working on fixing them. Some issues are obvious and some need a lot of experimentation.
