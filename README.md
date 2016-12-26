@@ -55,6 +55,7 @@ The idea was to learn features using a 1D Convolutional Neural Network and then 
 
 ### CNN Model Architecture and specifications
 ![CNN Architecture](https://sigvoiced.files.wordpress.com/2016/12/cnn.png)
+
 [Figure 2] The CNN architecture used in the experiments
 
 ### Bucketing
@@ -70,9 +71,11 @@ These buckets were selected by analyzing the distribution of the lengths of inpu
 The idea was to not only use the CNN to learn to extracting features from the sensor data  but also to fuse sensor data hierarchically.
 
 ![Char len hist](https://sigvoiced.files.wordpress.com/2016/12/char_len_hist.png)
+
 [Figure 3] Character length histogram
 
 ![Char len hist](https://sigvoiced.files.wordpress.com/2016/12/seq_len_hist.png)
+
 [Figure 4] Input sequence length histogram
 
 ### Different Model hyper parameters that were used for experiments and the corresponding dataset specs
