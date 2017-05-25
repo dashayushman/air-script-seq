@@ -1,5 +1,5 @@
 <div style="text-align:center"><img src ="https://sigvoiced.files.wordpress.com/2016/12/logo_name2.png" /></div>
------------------------------------------
+
 
 **Air-Script** is a CNN + Sequence to Sequence model for detecting handwriting on air using a Myo-Armband. It is Inspired by ‘Recursive Recurrent Nets with Attention Modeling for OCR in the Wild’ by [Chen-Yu & Simon, 2016](https://arxiv.org/abs/1603.03101). The idea was to use 1D-CNNs as feature extractors and a sequence to sequence model with Attention mechanism introduced by [Bahdanau et al., 2014](https://arxiv.org/abs/1409.0473) using LSTMs for variable length sequence classification.
 
@@ -13,7 +13,7 @@ The Implementation of [Attention-OCR](https://github.com/da03/Attention-OCR) was
 
 **I have tested it on an Ubuntu 14.04 and 15.04 with NVIDIA GeForce GT 740M and NVIDIA TITAN X Graphics card with Tensorflow running in a virtual environment. It should ideally run smoothly on any other system with the above packages installed in it.**
 
-###Set Keras backend:
+### Set Keras backend:
 
 ```
 export KERAS_BACKEND=tensorflow
